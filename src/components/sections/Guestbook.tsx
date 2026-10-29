@@ -1,10 +1,9 @@
 import { PalettePicker } from "@/components/guestbook/PalettePicker";
 import { SectionIntro } from "@/components/layout/SectionIntro";
-import { Badge } from "@/components/ui/badge";
 import { guestbook } from "@/lib/content";
 import { GRID_SIZE, SEED_ART } from "@/lib/guestbook";
 
-/** Static render of the shared canvas; Phase 5 makes it live and paintable. */
+/** Static render of the shared canvas; painting it live is still to come. */
 function Canvas({ cells }: { cells: string }) {
   const pixels = [...cells].flatMap((c, i) =>
     c === "0" ? [] : [{ x: i % GRID_SIZE, y: Math.floor(i / GRID_SIZE), c }],
@@ -59,11 +58,6 @@ export function Guestbook() {
             <span className="label-mono text-muted-foreground tabular-nums">Ink 30/30</span>
           </div>
         </div>
-        <div className="mt-3 flex items-baseline justify-between gap-4 px-1">
-          <h3 className="text-[15px] font-medium tracking-[-0.02em]">Guestbook</h3>
-          <Badge variant="tag">Live · 32×32</Badge>
-        </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">{guestbook.comingSoon}</p>
       </div>
     </section>
   );

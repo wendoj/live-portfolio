@@ -1,15 +1,10 @@
+import { SelectionHolder } from "@/components/multiplayer/SelectionHolder";
 import { AsciiScene } from "@/components/sea/AsciiScene";
 import { FishSchool } from "@/components/sea/FishSchool";
 import { Badge } from "@/components/ui/badge";
 import { type AsciiFrames, bubbles, jellyfish, kelp, school, shark } from "@/lib/ascii-scenes";
 import { about, type StatementPart } from "@/lib/content";
 import { cn } from "@/lib/utils";
-
-/**
- * Who "holds" the selection box in the statement. Phase 2 swaps this for the
- * newest real visitor (or a ghost when you're alone).
- */
-const selectionHolder = { name: "Teal Shark", color: "oklch(0.56 0.11 192)" };
 
 /** A Figma-style selection box around a word, held by a visitor's cursor. */
 function Selected({ children }: { children: React.ReactNode }) {
@@ -22,24 +17,9 @@ function Selected({ children }: { children: React.ReactNode }) {
         <span className={cn(handle, "-top-1 -right-1")} />
         <span className={cn(handle, "-bottom-1 -left-1")} />
         <span className={cn(handle, "-right-1 -bottom-1")} />
-        {/* Sits in the gap between lines, above neighbouring text. */}
-        <span className="absolute top-[calc(100%-3px)] left-[calc(100%-5px)] z-20 flex items-start whitespace-nowrap">
-          <svg viewBox="0 0 16 16" className="size-3.5" style={{ color: selectionHolder.color }}>
-            <path
-              d="M2 1.5 13.5 7l-5 1.4L6 13.5Z"
-              fill="currentColor"
-              stroke="white"
-              strokeWidth="1.2"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span
-            className="mt-2.5 rounded-full px-1.5 py-px text-[11px] leading-tight font-medium tracking-[-0.01em] text-white shadow-sm"
-            style={{ backgroundColor: selectionHolder.color }}
-          >
-            {selectionHolder.name}
-          </span>
-        </span>
+        {/* Sits in the gap between lines, above neighbouring text. Held by
+            the newest other visitor (see SelectionHolder). */}
+        <SelectionHolder className="absolute top-[calc(100%-3px)] left-[calc(100%-5px)] z-20 whitespace-nowrap" />
       </span>
     </span>
   );

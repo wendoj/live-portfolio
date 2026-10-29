@@ -4,24 +4,34 @@ My portfolio built for the **AWS Student Builder Challenge: Build Your Tech Supe
 
 The page is **multiplayer**: you can see the other people who are reading it. 
 
-> 🚧 Work in progress. Sections marked _(Phase n)_ are planned and not built yet.
+> 🚧 Work in progress. Items marked _(planned)_ are not built yet.
 
-### What's built (Phase 1)
+### What's built
 
+**The portfolio**
 - The full single-page portfolio: **Hero → About → Projects → Guestbook → Contact**, as a static export.
 - The interactive ASCII sea in the hero and the contact panel (sharks, fish, bubbles and ripples that react to your cursor).
-- The Amplify Hosting pipeline, with an empty Amplify Gen 2 backend so the deployment runs end to end.
-- The guestbook shows its seed art and colour palette; painting opens in Phase 5.
+- The Amplify Hosting pipeline, with an Amplify Gen 2 backend so the deployment runs end to end.
+- The guestbook shows its seed art and colour palette; painting is planned.
+
+**The live room**
+- An AppSync Events API (`room` namespace) with an `onPublish` validator that drops malformed, out-of-range or oversized events.
+- Anonymous per-tab identities ("Amber Eel"), live cursors on desktop, and scroll markers for phone visitors.
+- Presence with late-join replies, away states and timeouts. Untouched tabs (and Lighthouse) are never counted.
+- The count in the hero badge ("You + 2 swimming here") and the nav bubble, and the About selection held by the newest visitor.
+- A dock with each visitor's sea creature (🦈 🐙 🐢) on their colour: the newest three side by side, then "+N", which opens a list of everyone. It also holds Invite (copy link) and two settings: **Go invisible** (listen without being seen or counted) and **Hide others' cursors**, both remembered across visits.
+- Edge indicators: people scrolled above or below you show as coloured pills at the top or bottom of the screen; click one to jump to them.
+- Remote cursors stir the ASCII sea too.
 
 ## The creative feature: "You're not alone here"
 
 | Feature | What it does | Status |
 |---|---|---|
-| Live cursors + presence | Every visitor gets an anonymous name and colour ("Teal Otter") and a labelled cursor | _(Phase 2)_ |
-| Reactions | 👋 🔥 🎉 💡 bursts that everyone sees | _(Phase 3)_ |
-| Cursor chat | Press `/` to say something short; it fades after ~4 s and is never stored | _(Phase 3)_ |
-| Ghost replays | When you're alone, a few earlier visitors' cursor paths replay as translucent "ghosts" | _(Phase 4)_ |
-| Pixel guestbook | A shared 32 × 32 canvas; every pixel you place appears live for everyone | _(Phase 5)_ |
+| Live cursors + presence | Every visitor gets an anonymous name and colour ("Teal Otter") and a labelled cursor | ✅ |
+| Reactions | 👋 🔥 🎉 💡 bursts that everyone sees | _(planned)_ |
+| Cursor chat | Press `/` to say something short; it fades after ~4 s and is never stored | _(planned)_ |
+| Ghost replays | When you're alone, a few earlier visitors' cursor paths replay as translucent "ghosts" | _(planned)_ |
+| Pixel guestbook | A shared 32 × 32 canvas; every pixel you place appears live for everyone | _(planned)_ |
 
 **Why this feature?** _(to write)_ A portfolio is usually a lonely page, so I made this one a room.
 
@@ -44,12 +54,12 @@ flowchart LR
 |---|---|
 | **AWS Amplify Hosting** | Builds every push to `main` and serves the static site from a CDN |
 | **AWS Amplify Gen 2** | Defines the backend in TypeScript (`amplify/`) and deploys it with CDK |
-| **AWS AppSync Events** | WebSocket pub/sub for cursors, presence, reactions and chat _(Phase 2)_ |
-| **Amazon API Gateway (HTTP API)** | Rate-limited HTTPS endpoints for ghosts and the guestbook _(Phase 4)_ |
-| **AWS Lambda** | Validates input and reads/writes state _(Phase 4)_ |
-| **Amazon DynamoDB** | Ghost paths (7-day TTL) and the guestbook grid _(Phase 4–5)_ |
+| **AWS AppSync Events** | WebSocket pub/sub for cursors and presence (reactions and chat planned), with an `onPublish` handler validating every event |
+| **Amazon API Gateway (HTTP API)** | Rate-limited HTTPS endpoints for ghosts and the guestbook _(planned)_ |
+| **AWS Lambda** | Validates input and reads/writes state _(planned)_ |
+| **Amazon DynamoDB** | Ghost paths (7-day TTL) and the guestbook grid _(planned)_ |
 | **Amazon CloudWatch** | Lambda logs (automatic) |
-| **AWS Budgets** | Billing alarm to keep costs near zero _(Phase 6)_ |
+| **AWS Budgets** | Billing alarm to keep costs near zero _(planned)_ |
 
 ## Tech stack
 
@@ -66,13 +76,23 @@ npx ampx sandbox      # deploys a personal cloud backend and writes amplify_outp
 npm run dev           # http://localhost:3000
 ```
 
-Without the sandbox, the site still works as a normal static portfolio; the multiplayer layer stays hidden.
+Without the sandbox, the site still works as a normal static portfolio; the multiplayer layer stays hidden. (`npm run dev` and `npm run build` write a stub `amplify_outputs.json` when there isn't one.)
+
+On Node 25, `ampx` crashes on Node's built-in `localStorage`; run it as `NODE_OPTIONS=--no-webstorage npx ampx sandbox`, or use Node 22 like the pipeline.
+
+**Testing multiplayer:** open two desktop tabs, plus a phone on the same network at `http://<your-lan-ip>:3000`. A tab joins the room on its first scroll, key press or mouse move.
+
+**Checking the validator:** with the sandbox deployed, `node scripts/check-onpublish.mjs` publishes good and bad events and checks that only the good ones get through.
+
+### API key rotation
+
+The browser uses a public AppSync API key (public by design: the `onPublish` validator and a client-side flood guard limit what it can do). AppSync caps API keys at **365 days**. The expiry is recomputed on every deploy, so each push to `main` extends it to a year from then. If the site goes a year without a deploy, redeploy (or extend the key in the AppSync console) and the key keeps working.
 
 To check the production build: `npm run build` (writes the static site to `out/`).
 
 ## Deployment
 
-Amplify Hosting is connected to this repo's `main` branch. [`amplify.yml`](amplify.yml) runs two phases:
+Amplify Hosting is connected to this repo's `main` branch. [`amplify.yml`](amplify.yml) runs two stages:
 
 1. **Backend:** `npx ampx pipeline-deploy` deploys `amplify/` and generates `amplify_outputs.json`.
 2. **Frontend:** `npm run build` creates the static export in `out/`.
@@ -82,18 +102,21 @@ No secrets are committed. `amplify_outputs.json` is gitignored and generated in 
 ## Project structure
 
 ```
-amplify/                backend (Amplify Gen 2; empty until Phase 2)
+amplify/                backend (Amplify Gen 2): the Events API and its onPublish handler (events/)
 src/app/                Next.js layout, page, global styles, icon.svg (favicon)
 src/components/
   sections/             Hero, About, Projects, Guestbook, Contact
   layout/               nav, footer, section intro, scroll-reveal observer
   sea/                  AsciiSea (canvas), AsciiScene (card art), FishSchool, SeaDecor
   hero/                 HeroGrid (guide lines), InlineShark
+  multiplayer/          room provider, cursor layer, dock, live badge, selection holder
   ui/                   shadcn/ui components, restyled
+src/lib/realtime/       protocol types, connection + backoff, identity, anchors, presence, cursors
 src/lib/content.ts      all portfolio copy in one place
 src/lib/ascii-scenes.ts frames for the About cards' ASCII art
 src/lib/guestbook.ts    guestbook grid size, palette and seed art (shared with the backend)
 .plans/                 design specs, one per design pass
+scripts/                outputs stub, onPublish check
 ```
 
 ## Design

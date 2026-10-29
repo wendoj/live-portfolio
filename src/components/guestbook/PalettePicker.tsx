@@ -6,7 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PALETTE } from "@/lib/guestbook";
 
-/** Colour picker for the guestbook. Phase 5 wires the choice into painting. */
+/** Colour picker for the guestbook. The choice will drive painting once it opens. */
 export function PalettePicker() {
   const [colour, setColour] = useState("2");
 

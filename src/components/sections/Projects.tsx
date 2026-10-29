@@ -43,8 +43,8 @@ function ProdpodPlaceholder() {
 }
 
 /**
- * A small schematic of this page with visitor dots on it. Phase 2 feeds it the
- * real positions of everyone reading.
+ * A small schematic of this page with visitor dots on it (illustrative
+ * positions, not live ones).
  */
 function MiniMap() {
   const dots = [

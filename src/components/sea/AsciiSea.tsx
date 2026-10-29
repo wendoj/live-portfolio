@@ -194,7 +194,7 @@ type Props = {
  * Every cursor in `seaCursors` ripples the water and scatters the fish. Sharks
  * are curious: they drift towards a cursor that holds still and dart away
  * from one that moves fast. Clicking a shark startles it and releases a
- * burst of bubbles (shared with the room in Phase 2 via `emitSeaBurst`).
+ * burst of bubbles (via `emitSeaBurst`, so every sea canvas on the page draws it).
  *
  * Decorative only (aria-hidden, no pointer events; clicks are hit-tested from
  * a window listener). Performance: ≤ 30 fps, paused off screen or in a hidden

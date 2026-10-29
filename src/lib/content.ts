@@ -5,7 +5,7 @@
 
 export const site = {
   name: "Wendy Ji",
-  title: "Wendy Ji - CS & Maths at Manchester",
+  title: "Wendy Ji",
   description:
     "Wendy Ji's multiplayer portfolio: swim with whoever else is reading, leave a mark, and find out what she builds.",
 } as const;
@@ -14,7 +14,7 @@ export const links = {
   email: "mailto:wendoj@proton.me",
   github: "https://github.com/wendoj",
   linkedin: "https://linkedin.com/in/wendy-ji",
-  prodpod: "https://TODO-prodpod.example.com",
+  prodpod: "https://prodpod.app",
   repo: "https://github.com/wendoj/live-portfolio",
 } as const;
 
@@ -60,7 +60,7 @@ export const about = {
   ],
   // TODO: what I'm working on this month.
   now: [
-    "Applying to spring weeks",
+    "First term at Manchester",
     "Building this site for the AWS Student Builder Challenge",
     "Joining all of the hackathons",
   ],
@@ -133,18 +133,52 @@ export const earlierWork = [
 
 export const guestbook = {
   title: { strong: "Leave a mark.", soft: "Every pixel shows up for everyone reading." },
-  comingSoon: "Painting opens soon. Pick a colour to get ready.",
 } as const;
 
 export const contact = {
   kicker: "Want to work together?",
   statement:
-    "I'm open to internships and placements, and always happy to talk about systems, ML or real-time things.",
+    "I'm open to internships and part-time work, and always happy to talk about systems, ML or real-time things.",
   items: [
     { label: "Email", href: links.email, icon: "mail" },
     { label: "GitHub", href: links.github, icon: "github" },
     { label: "LinkedIn", href: links.linkedin, icon: "linkedin" },
   ],
+} as const;
+
+/** Copy for the live multiplayer layer. */
+export const multiplayer = {
+  /** Hero badge with N ≥ 1 others here (away visitors count). */
+  liveBadge: (others: number) => `You + ${others} swimming here`,
+  /** Nav bubble: "+2" beside the bubble, and its tooltip. */
+  navCount: (others: number) => `+${others}`,
+  navCountLabel: (others: number) => `${others} other ${others === 1 ? "person" : "people"} reading now`,
+  /** Who holds the About selection when nobody else is here. */
+  selectionFallback: { name: "Coral Shark", color: 1 },
+  dock: {
+    label: "People here now",
+    you: "You",
+    invisible: "Invisible",
+    away: "away",
+    more: (n: number) => `+${n}`,
+    showAll: (total: number) => `Show all ${total} ${total === 1 ? "person" : "people"} here`,
+    peopleTitle: (total: number) => `${total} other ${total === 1 ? "person" : "people"} here`,
+    invite: "Invite",
+    copied: "Link copied",
+    inviteLabel: "Copy a link to this page",
+  },
+  visibility: {
+    button: "Visibility",
+    invisible: { label: "Go invisible", hint: "Others won't see you or count you." },
+    hideOthers: { label: "Hide others' cursors", hint: "Their cursors disappear from your screen." },
+  },
+  edge: {
+    aboveLabel: "People further up the page",
+    belowLabel: "People further down the page",
+    scrollTo: (name: string) => `Scroll to ${name}`,
+    more: (n: number) => `+${n}`,
+    moreLabel: (n: number) => `and ${n} more`,
+  },
 } as const;
 
 export const footer = {

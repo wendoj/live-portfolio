@@ -1,9 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * A small bubble beside the name. Still while offline; once the multiplayer
- * layer is connected (Phase 2) `live` sends a smaller bubble rising off it on
- * a loop. Uses currentColor, so it follows the nav's white-on-sea /
+ * A small bubble beside the name. Still while alone or offline; with others
+ * here, `live` sends a smaller bubble rising off it on a loop. Uses currentColor, so it follows the nav's white-on-sea /
  * ink-on-white switch.
  */
 export function PresenceBubble({

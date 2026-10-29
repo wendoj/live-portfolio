@@ -3,6 +3,7 @@
 import { MenuIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PresenceBubble } from "@/components/brand/PresenceBubble";
+import { NavPresence } from "@/components/multiplayer/NavPresence";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -46,21 +47,35 @@ function useOverSea() {
   useEffect(() => {
     const hero = document.getElementById("top");
     if (!hero) return;
+    const phone = window.matchMedia("(max-width: 767px)");
     let frame = 0;
+    const copy = document.getElementById("hero-copy");
     const update = () => {
       frame = 0;
+      if (phone.matches && copy) {
+        // On phones the hero copy fills the width, so the white name and
+        // links would slide over the white headline. Flip to the pill as
+        // soon as the copy reaches the nav's bottom edge (72px).
+        setOverSea(copy.getBoundingClientRect().top > 80);
+        return;
+      }
       // The sea turns pale from its --sea-mid stop (64%, see .sea), where
       // white links would vanish, so switch before the nav reaches it.
       const rect = hero.getBoundingClientRect();
       setOverSea(rect.top + rect.height * 0.62 > 72);
     };
-    const onScroll = () => {
+    const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };
     update();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", schedule, { passive: true });
+    // Mobile address bars resize the svh hero without always firing a scroll.
+    window.addEventListener("resize", schedule);
+    window.addEventListener("orientationchange", schedule);
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("orientationchange", schedule);
       cancelAnimationFrame(frame);
     };
   }, []);
@@ -81,14 +96,17 @@ export function Nav() {
         // width change is skipped under reduced motion.
         className={cn(
           "pointer-events-auto flex h-14 w-full items-center gap-2 rounded-full border border-transparent pr-2 pl-5 transition-[max-width,background-color,color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-[background-color,color,box-shadow]",
-          overSea ? "max-w-6xl text-white" : "glass max-w-3xl text-foreground",
+          overSea
+            ? // The same soft shadow as the hero copy, so white text holds over glyphs and pale water.
+              "max-w-6xl text-white [text-shadow:0_1px_12px_oklch(0.4_0.1_215/0.55)]"
+            : "glass max-w-3xl text-foreground",
         )}
       >
         <a
           href="#top"
           className="mr-auto flex items-center gap-2 rounded-full text-[17px] font-medium tracking-[-0.03em]"
         >
-          <PresenceBubble />
+          <NavPresence />
           {site.name}
         </a>
 

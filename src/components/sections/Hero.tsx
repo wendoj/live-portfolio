@@ -1,9 +1,9 @@
 import { ArrowDownIcon, ArrowRightIcon } from "lucide-react";
 import { InlineShark } from "@/components/hero/InlineShark";
 import { ScrambleText } from "@/components/motion/ScrambleText";
+import { LiveBadge } from "@/components/multiplayer/LiveBadge";
 import { AsciiSea } from "@/components/sea/AsciiSea";
 import { SeaDecor } from "@/components/sea/SeaDecor";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { hero } from "@/lib/content";
 
@@ -50,10 +50,8 @@ export function Hero() {
       </div>
 
       <div id="hero-copy" className="relative z-10 flex max-w-3xl flex-col items-center">
-        {/* Phase 2 turns this into the live "● 3 swimming here" count. */}
-        <Badge variant="sea-rect" className="enter" style={stagger(0)}>
-          {hero.offlineBadge}
-        </Badge>
+        {/* "Open to internships", or "● You + 2 swimming here" with company. */}
+        <LiveBadge className="enter" style={stagger(0)} />
 
         <h1
           id="hero-title"

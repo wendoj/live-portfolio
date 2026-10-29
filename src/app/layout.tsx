@@ -3,6 +3,8 @@ import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RevealObserver } from "@/components/layout/RevealObserver";
+import { MultiplayerOverlays } from "@/components/multiplayer/MultiplayerOverlays";
+import { MultiplayerProvider } from "@/components/multiplayer/MultiplayerProvider";
 import { site } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -41,7 +43,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+        <TooltipProvider delayDuration={300}>
+          {/* The live room. Until it connects, the page is a plain static site. */}
+          <MultiplayerProvider>
+            {children}
+            <MultiplayerOverlays />
+          </MultiplayerProvider>
+        </TooltipProvider>
         <RevealObserver />
       </body>
     </html>

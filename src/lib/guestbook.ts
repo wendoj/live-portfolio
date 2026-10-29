@@ -1,5 +1,5 @@
 /**
- * Shared constants for the pixel guestbook. The backend (Phase 5) imports
+ * Shared constants for the pixel guestbook. The backend will import
  * these too, so the grid size, palette and seed art have one source of truth.
  */
 

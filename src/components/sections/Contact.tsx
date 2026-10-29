@@ -32,7 +32,9 @@ export function Contact() {
       aria-labelledby="contact-title"
       className="px-3 pt-8 sm:px-6"
     >
-      <div className="relative isolate mx-auto flex min-h-[560px] max-w-[88rem] flex-col items-center justify-center overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,var(--sea-deep)_0%,var(--sea)_45%,var(--sea-mid)_100%)] px-5 py-24 text-center sm:rounded-[36px]">
+      <div
+        data-anchor="contact-panel"
+        className="relative isolate mx-auto flex min-h-[560px] max-w-[88rem] flex-col items-center justify-center overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,var(--sea-deep)_0%,var(--sea)_45%,var(--sea-mid)_100%)] px-5 py-24 text-center sm:rounded-[36px]">
         <SeaDecor />
         <AsciiSea
           sharks={1}
