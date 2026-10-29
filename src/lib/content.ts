@@ -61,7 +61,7 @@ export const about = {
   offTheClock: {
     hobbies: [
       { emoji: "🧠", label: "Binging Korean brain survival shows" },
-      { emoji: "📚", label: "Reading" },
+      { emoji: "🎮", label: "Playing Valorant and Deadlock" },
       { emoji: "🤖", label: "Building robots" },
     ],
     societies: ["Robotics Society", "UniCS", "Women in Tech", "Hackchester"],

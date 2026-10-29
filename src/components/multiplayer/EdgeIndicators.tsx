@@ -3,7 +3,7 @@
 import { ArrowDownIcon, ArrowUpIcon, SmartphoneIcon } from "lucide-react";
 import { multiplayer } from "@/lib/content";
 import { resolve } from "@/lib/realtime/anchors";
-import { colorHex } from "@/lib/realtime/names";
+import { visitorColor } from "@/lib/realtime/names";
 import { cn } from "@/lib/utils";
 import { useMultiplayer } from "./MultiplayerProvider";
 
@@ -14,7 +14,7 @@ const MAX_PER_EDGE = 3;
 const { edge: copy } = multiplayer;
 
 const pill =
-  "flex h-6 items-center gap-1 rounded-full px-2 text-[11px] leading-none font-medium tracking-[-0.01em] whitespace-nowrap text-white shadow-sm";
+  "flex h-6 items-center gap-1 rounded-full px-2 text-[11px] leading-none font-medium tracking-[-0.01em] whitespace-nowrap shadow-sm";
 
 /**
  * Coloured pills pinned under the nav (for visitors above you) and above the
@@ -70,7 +70,7 @@ export function EdgeIndicators({ edges }: { edges: Edges }) {
                   pill,
                   "pointer-events-auto cursor-pointer outline-none transition-[scale] duration-150 ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.96]",
                 )}
-                style={{ backgroundColor: colorHex(color) }}
+                style={{ backgroundColor: visitorColor(color).hex, color: visitorColor(color).ink }}
               >
                 <Arrow aria-hidden className="size-3 stroke-[2.5]" />
                 {peer.device === "touch" && <SmartphoneIcon aria-hidden className="size-3 stroke-[2.25]" />}
@@ -80,7 +80,7 @@ export function EdgeIndicators({ edges }: { edges: Edges }) {
           );
         })}
         {more > 0 && (
-          <li className={cn(pill, "bg-foreground/80 tabular-nums")}>
+          <li className={cn(pill, "bg-foreground/80 text-white tabular-nums")}>
             <span aria-hidden>{copy.more(more)}</span>
             <span className="sr-only">{copy.moreLabel(more)}</span>
           </li>

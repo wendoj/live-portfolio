@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { resolve } from "@/lib/realtime/anchors";
-import { colorHex } from "@/lib/realtime/names";
+import { visitorColor } from "@/lib/realtime/names";
 import { seaCursors } from "@/lib/sea";
 import { CursorGlyph, TouchGlyph } from "./CursorGlyph";
 import { type Edges, EdgeIndicators } from "./EdgeIndicators";
@@ -156,10 +156,10 @@ export function CursorLayer() {
             className="absolute top-0 left-0 opacity-0 transition-opacity duration-300 will-change-transform"
           >
             {device === "touch" ? (
-              <TouchGlyph name={visitor.name} color={colorHex(visitor.color)} />
+              <TouchGlyph name={visitor.name} color={visitorColor(visitor.color)} />
             ) : (
               // Nudged so the arrow's tip, not its box, sits on the point.
-              <CursorGlyph name={visitor.name} color={colorHex(visitor.color)} className="-mt-[1.5px] -ml-[2px]" />
+              <CursorGlyph name={visitor.name} color={visitorColor(visitor.color)} className="-mt-[1.5px] -ml-[2px]" />
             )}
           </div>
         ))}

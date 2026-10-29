@@ -100,6 +100,8 @@ const allowOrigins =
   AWS_APP_ID && AWS_BRANCH
     ? [
         `https://${AWS_BRANCH.replaceAll("/", "-")}.${AWS_APP_ID}.amplifyapp.com`,
+        "https://wendyji.com",
+        "https://www.wendyji.com",
         "http://localhost:3000",
         ...(EXTRA_ALLOWED_ORIGINS?.split(",").filter(Boolean) ?? []),
       ]

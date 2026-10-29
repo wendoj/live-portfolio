@@ -15,7 +15,7 @@ The page is multiplayer: you can see the other people reading it, and leave a ma
 | **Pixel guestbook** | A shared 32 × 32 canvas. Every pixel is confirmed by the server and appears live for everyone. Paintable by mouse, touch or keyboard, with a small ink budget. |
 | **The sea reacts** | Sharks and fish in the ASCII sea react to everyone's cursors, not just yours. |
 
-**Why this feature?** Prodpod, my study platform, taught me that people stay where other people are. A portfolio is usually a lonely page, so I made this one a room.
+**Why this feature?** A portfolio is usually a lonely page, so I made this one a room.
 
 ## Architecture
 
@@ -93,7 +93,7 @@ Amplify Hosting is connected to this repo's `main` branch. [`amplify.yml`](ampli
 1. **Backend:** `npx ampx pipeline-deploy` deploys `amplify/` and generates `amplify_outputs.json`.
 2. **Frontend:** `npm run build` creates the static export in `out/`.
 
-CORS on the HTTP API allows the branch's own `amplifyapp.com` domain (from the `AWS_APP_ID` and `AWS_BRANCH` the pipeline provides) and `localhost:3000`; add a custom domain with the `EXTRA_ALLOWED_ORIGINS` environment variable (comma-separated). A personal sandbox allows any origin so phones on the LAN can test against it.
+CORS on the HTTP API allows the branch's own `amplifyapp.com` domain (from the `AWS_APP_ID` and `AWS_BRANCH` the pipeline provides), `wendyji.com`, `www.wendyji.com` and `localhost:3000`; add other domains with the `EXTRA_ALLOWED_ORIGINS` environment variable (comma-separated). A personal sandbox allows any origin so phones on the LAN can test against it.
 
 ## Cost
 

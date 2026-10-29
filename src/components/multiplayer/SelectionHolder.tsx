@@ -1,7 +1,7 @@
 "use client";
 
 import { multiplayer } from "@/lib/content";
-import { colorHex } from "@/lib/realtime/names";
+import { visitorColor } from "@/lib/realtime/names";
 import { CursorGlyph } from "./CursorGlyph";
 import { useMultiplayer } from "./MultiplayerProvider";
 
@@ -13,5 +13,5 @@ export function SelectionHolder({ className }: { className?: string }) {
   const { connected, peers } = useMultiplayer();
   const newest = connected ? peers.at(-1)?.visitor : undefined;
   const holder = newest ?? multiplayer.selectionFallback;
-  return <CursorGlyph name={holder.name} color={colorHex(holder.color)} className={className} />;
+  return <CursorGlyph name={holder.name} color={visitorColor(holder.color)} className={className} />;
 }

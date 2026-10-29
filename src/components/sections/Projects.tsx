@@ -53,9 +53,9 @@ function MiniMap() {
     { top: "71%", left: "30%", color: "oklch(0.58 0.2 300)" },
   ];
   return (
-    <div className="flex size-full items-center justify-center bg-[linear-gradient(180deg,var(--sea-deep),var(--sea-mid)_60%,var(--sea-light))] p-8">
+    <div className="flex size-full items-center justify-center bg-gradient-to-tl from-sea-light to-sea p-8">
       <div className="relative h-full w-1/2 max-w-48 overflow-hidden rounded-xl bg-white/90 p-3 shadow-xl">
-        <div className="h-[22%] rounded-[8px] bg-[linear-gradient(180deg,var(--sea),var(--sea-light))]" />
+        <div className="h-[22%] rounded-[8px] bg-sea" />
         {[0.7, 0.5, 0.85, 0.6, 0.75].map((w, i) => (
           <div key={i} className="mt-2.5 h-2 rounded-full bg-foreground/10" style={{ width: `${w * 100}%` }} />
         ))}
