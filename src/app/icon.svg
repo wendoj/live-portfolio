@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The nav's PresenceBubble at 6.4x: a 10px ring with a 1.5px stroke and
+       a 3px dot set 3px in from the top-left edge. Ink, no background. -->
+  <circle cx="32" cy="32" r="27.2" fill="none" stroke="#0f1217" stroke-width="9.6"/>
+  <circle cx="28.8" cy="28.8" r="9.6" fill="#0f1217"/>
+</svg>

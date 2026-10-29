@@ -1,0 +1,433 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* shadcn components ship `dark:` classes; the site is light-only, so this
+   variant never matches. Keeping it lets those classes compile. */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * "Shallows" design system. White pages, with sunlit-sea surfaces (hero +
+ * contact) where people meet. shadcn's variables are remapped onto these
+ * tokens so every component inherits the system.
+ */
+:root {
+  --radius: 0.875rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.18 0.012 265);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: var(--foreground);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.965 0.006 265);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.972 0.005 265);
+  /* Solid grey that still passes 4.5:1 on white and on --muted. */
+  --muted-foreground: oklch(0.49 0.012 265);
+  --accent: oklch(0.955 0.025 210);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.18 0.012 265 / 0.08);
+  --input: oklch(0.18 0.012 265 / 0.14);
+  --ring: var(--sea);
+
+  /* Two-tone statement text. --ink-soft is solid (not 40% alpha) so it still
+     reaches 3:1 for the large text it is used on; small informational text
+     uses --muted-foreground instead. */
+  --ink-strong: oklch(0.26 0.012 265);
+  --ink-soft: oklch(0.6 0.012 265);
+
+  /* Sunlit lagoon: DayDream's sky ramp turned teal. --sea-deep and --sea
+     are as light as they can be while white text on them still passes
+     (5.7:1 and 4.1:1). */
+  --sea: oklch(0.58 0.12 205);
+  --sea-deep: oklch(0.5 0.12 215);
+  --sea-mid: oklch(0.74 0.1 200);
+  --sea-light: oklch(0.91 0.06 200);
+  --seafoam: oklch(0.96 0.03 190);
+  /* Ink for text on white in the sea's colour (AA on white). */
+  --sea-ink: oklch(0.47 0.09 210);
+  /* Glass pill label on the sea: DayDream's #41beff turned teal, deepened
+     until it reaches 3:1 on the pill's white glass. */
+  --pill-ink: oklch(0.55 0.12 210);
+  /* Warm accent, used sparingly. */
+  --sand: oklch(0.9 0.06 75);
+
+  /* Guestbook palette (ids 1–7, see src/lib/guestbook.ts) */
+  --px-1: oklch(0.22 0.012 265);
+  --px-2: oklch(0.58 0.2 258);
+  --px-3: oklch(0.68 0.18 30);
+  --px-4: oklch(0.66 0.11 190);
+  --px-5: oklch(0.56 0.2 300);
+  --px-6: oklch(0.76 0.13 355);
+  --px-7: oklch(0.82 0.15 80);
+
+  /* Glass */
+  --glass: oklch(1 0 0 / 0.72);
+  --glass-on-sea: oklch(1 0 0 / 0.16);
+  --glass-edge: oklch(1 0 0 / 0.75);
+  --glass-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 1px oklch(0.18 0.012 265 / 0.06),
+    0 8px 24px -10px oklch(0.4 0.09 210 / 0.25);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-soft: var(--ink-soft);
+  --color-sea: var(--sea);
+  --color-sea-deep: var(--sea-deep);
+  --color-sea-light: var(--sea-light);
+  --color-sea-ink: var(--sea-ink);
+  --color-seafoam: var(--seafoam);
+  --color-sand: var(--sand);
+
+  --font-sans: var(--font-aspekta), "Inter Tight", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    /* Keeps anchored sections clear of the floating nav. */
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+    font-weight: 450;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Lucide strokes in rendered pixels, so stroke-width 2 paints 2px at any
+     icon size and matches the medium-weight text beside it. */
+  .lucide * {
+    vector-effect: non-scaling-stroke;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: oklch(0.66 0.13 205 / 0.22);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* "[01] · ABOUT" style labels and caption tags. */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* The sea: DayDream's ramp shape (deep → bright → pale → white), with the
+     stops pushed down so the hero copy stays on the deeper half. */
+  .sea {
+    background: linear-gradient(
+      180deg,
+      var(--sea-deep) 0%,
+      var(--sea) 48%,
+      var(--sea-mid) 64%,
+      var(--sea-light) 80%,
+      var(--background) 100%
+    );
+  }
+
+  /*
+   * Glassy headline fill: white fading to a pale aqua tint, with a soft glow.
+   * background-clip: text only paints inside the element's box, so with tight
+   * line-heights descenders ("g", "y") were clipped. The padding grows the box
+   * to cover ascenders/descenders; the negative margin cancels its layout cost.
+   */
+  .text-glass {
+    padding-block: 0.06em 0.16em;
+    margin-block: -0.06em -0.16em;
+    background-image: linear-gradient(
+      180deg,
+      oklch(1 0 0) 30%,
+      oklch(0.94 0.04 200) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 18px oklch(0.4 0.1 215 / 0.55));
+    font-weight: 600;
+  }
+
+  /* Frosted surface used by pills, the nav and the dock. A transparent border
+     keeps an edge in forced-colors mode, which drops box-shadows. */
+  .glass {
+    background-color: var(--glass);
+    border: 1px solid transparent;
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+  }
+
+  .glass-on-sea {
+    background-color: var(--glass-on-sea);
+    border: 1px solid transparent;
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 0.35),
+      0 0 0 1px oklch(1 0 0 / 0.22);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(16px) saturate(1.3);
+  }
+}
+
+/*
+ * A small school of ASCII fish drifting across a section opener. Each fish
+ * sets --d (duration) and a negative animation-delay so they start spread out.
+ * Under reduced motion they hold still, spread out by --x (percent).
+ */
+@keyframes fish-drift {
+  from {
+    translate: -4rem 0;
+  }
+  to {
+    translate: calc(100cqw + 4rem) 0;
+  }
+}
+
+@keyframes fish-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.fish-lane {
+  container-type: inline-size;
+}
+
+.fish {
+  translate: calc(var(--x, 0) * 1cqw) 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fish {
+    animation: fish-drift var(--d, 38s) linear infinite;
+  }
+
+  .fish > span {
+    display: inline-block;
+    animation: fish-bob 2.6s ease-in-out infinite;
+  }
+}
+
+/* Live presence bubble: a smaller bubble rises off it and fades, on a loop. */
+@keyframes presence-rise {
+  from {
+    translate: -50% 0;
+    opacity: 0.9;
+  }
+  to {
+    translate: -50% -10px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .presence-rise {
+    animation: presence-rise 2.4s ease-out infinite;
+  }
+}
+
+/* Light shafts in the sea sway slowly around their top edge. */
+@keyframes sea-sway {
+  from {
+    rotate: calc(var(--sway, 2deg) * -1);
+  }
+  to {
+    rotate: var(--sway, 2deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sea-ray {
+    animation: sea-sway 14s ease-in-out infinite alternate;
+  }
+}
+
+/*
+ * One-time staggered entrance for the hero. CSS (not Motion) so it plays
+ * before hydration and never hides content from no-JS visitors or LCP.
+ * Set --i on each chunk: 0, 1, 2 … for a 150ms stagger. Unhurried on purpose:
+ * this runs once per visit.
+ */
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    translate: 0 12px;
+  }
+}
+
+.enter {
+  animation: enter-fade 650ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(var(--i, 0) * 150ms);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .enter {
+    animation-name: enter-rise;
+  }
+}
+
+/*
+ * Scroll reveals. Content is visible by default; <RevealObserver> adds
+ * .reveal-ready to <html> after hydration, and only then are not-yet-seen
+ * [data-reveal] elements hidden. So no-JS visitors and crawlers see everything.
+ * Transitions (not keyframes), so a reveal never fights a later state.
+ */
+.reveal-ready [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+}
+
+[data-reveal] {
+  transition-property: opacity;
+  transition-duration: 650ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  transition-delay: calc(var(--i, 0) * 120ms);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-ready [data-reveal]:not([data-revealed]) {
+    filter: blur(4px);
+    translate: 0 12px;
+  }
+
+  [data-reveal] {
+    transition-property: opacity, filter, translate;
+  }
+
+  /* Word-by-word statement: each word fades in 60ms after the last. */
+  .reveal-ready [data-reveal-words]:not([data-revealed]) .word {
+    opacity: 0;
+  }
+
+  [data-reveal-words] .word {
+    transition: opacity 600ms ease-out;
+    transition-delay: min(calc(var(--w, 0) * 60ms), 1400ms);
+  }
+}
+
+/*
+ * Glass pill (DayDream). The Button's `primary` variant carries the surface
+ * colours; this adds the motion: on pointer hover the pill grows to 1.06 with
+ * a slight overshoot, and a click settles it back to 1. Under reduced motion
+ * only the background brightens.
+ */
+.pill {
+  transition-property: scale, background-color, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1.2);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .pill:hover {
+    scale: 1.06;
+  }
+
+  .pill:hover:active {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pill:active {
+    scale: 0.97;
+  }
+}
+
+/*
+ * Nav link roll (DayDream): a one-line window over two stacked copies of the
+ * label. On hover the stack slides up and the fainter copy rolls in.
+ */
+.nav-roll {
+  display: block;
+  height: 1.25em;
+  overflow: hidden;
+  line-height: 1.25em;
+}
+
+.nav-roll__stack {
+  display: flex;
+  flex-direction: column;
+  transition: translate 200ms cubic-bezier(0.12, 0.23, 0.5, 1);
+}
+
+.nav-roll__ghost {
+  opacity: 0.6;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  a:hover > .nav-roll > .nav-roll__stack {
+    translate: 0 -50%;
+  }
+}
