@@ -1,7 +1,4 @@
-/**
- * All portfolio copy lives here so the components stay purely presentational.
- * Anything marked TODO is a placeholder to fill in before submission.
- */
+/** All portfolio copy lives here so the components stay purely presentational. */
 
 export const site = {
   name: "Wendy Ji",
@@ -28,7 +25,6 @@ export const nav = [
 export const hero = {
   greeting: "Hi, I'm",
   name: "Wendy Ji.",
-  // TODO: draft; edit freely.
   sub: "First-year CS & Maths at Manchester. I build real-time things and I'm curious about systems and ML.",
   offlineBadge: "Open to internships",
   primaryCta: { label: "See my work", href: "#projects" },
@@ -42,7 +38,7 @@ export const hero = {
 export type StatementPart = { text: string; select?: boolean };
 
 export const about = {
-  // TODO: draft statement; edit freely. "together" carries the live selection.
+  // "together" carries the live selection.
   strong: [
     { text: "I'm Wendy, a first-year at Manchester who likes making things people use" },
     { text: "together.", select: true },
@@ -52,32 +48,27 @@ export const about = {
       text: "Right now I'm digging into systems and machine learning, and spending too much time on side projects.",
     },
   ] satisfies StatementPart[],
-  // Trimmed to what I'd happily talk about in an interview.
   skills: [
     { group: "Languages", items: ["TypeScript", "Python", "C++", "Java", "SQL"] },
     { group: "Frameworks", items: ["React", "Next.js", "Node.js", "Fastify", "Flask"] },
     { group: "Tools", items: ["Git", "Docker", "GitHub Actions", "AWS", "Redis", "pandas / NumPy"] },
   ],
-  // TODO: what I'm working on this month.
   now: [
     "First term at Manchester",
     "Building this site for the AWS Student Builder Challenge",
     "Joining all of the hackathons",
   ],
-  // TODO: replace the placeholder hobbies.
   offTheClock: {
     hobbies: [
-      { emoji: "🎧", label: "TODO hobby" },
-      { emoji: "🍵", label: "TODO hobby" },
-      { emoji: "🧩", label: "TODO hobby" },
+      { emoji: "🧠", label: "Binging Korean brain survival shows" },
+      { emoji: "📚", label: "Reading" },
+      { emoji: "🤖", label: "Building robots" },
     ],
     societies: ["Robotics Society", "UniCS", "Women in Tech", "Hackchester"],
   },
-  // TODO: what I'm into right now.
   currentlyInto: [
-    { kind: "Reading", title: "TODO book" },
-    { kind: "Listening", title: "TODO album or podcast" },
-    { kind: "Watching", title: "TODO show" },
+    { kind: "Reading", title: "A Tour of C++" },
+    { kind: "Watching", title: "Steel Ball Run: JoJo's Bizarre Adventure 2nd Stage" },
   ],
   studying: { what: "CS & Maths", where: "University of Manchester", years: "2026–2030" },
   buildingSince: "2021",
@@ -86,21 +77,21 @@ export const about = {
 export const prodpod = {
   name: "Prodpod",
   tags: ["Real-time", "Web app"],
-  summary: "A real-time study platform I built and grew to 11,000+ users.",
+  summary: "A real-time study platform where students work together over live video, chat and screen sharing. I built it solo, end to end.",
   stats: [
-    { value: "11,000+", label: "users" },
-    { value: "180K", label: "impressions" },
+    { value: "12,000+", label: "users" },
+    { value: "206K", label: "impressions" },
   ],
   link: { href: links.prodpod, label: "Visit Prodpod" },
-  // TODO: replace with a real screenshot in public/projects/ (16:9, ≥ 2400px wide).
-  image: null as string | null,
+  video: "/projects/prodpod.mp4",
+  image: "/projects/home-page.png",
 } as const;
 
 export const thisSite = {
   name: "This portfolio",
   tags: ["AWS", "Multiplayer"],
   summary:
-    "Live cursors, reactions, cursor chat, ghost replays and a shared pixel guestbook.",
+    "Live cursors and a shared pixel guestbook.",
   link: { href: links.repo, label: "Read the code" },
 } as const;
 
@@ -133,6 +124,13 @@ export const earlierWork = [
 
 export const guestbook = {
   title: { strong: "Leave a mark.", soft: "Every pixel shows up for everyone reading." },
+  canvasLabel: "Shared guestbook canvas, 32 by 32 pixels",
+  instructions:
+    "Click or tap a square to paint it (drag to paint a line). With the keyboard: arrow keys move, Space paints, 1 to 7 pick a colour and 0 the eraser.",
+  ink: (left: number, max: number) => `Ink ${left}/${max}`,
+  inkLabel: (left: number, max: number) => `${left} of ${max} pixels of ink left; it refills over a minute`,
+  offline: "Live painting is offline right now; showing the starting drawing.",
+  painted: (x: number, y: number, colour: string) => `Painted ${colour} at column ${x + 1}, row ${y + 1}`,
 } as const;
 
 export const contact = {
@@ -172,6 +170,11 @@ export const multiplayer = {
     invisible: { label: "Go invisible", hint: "Others won't see you or count you." },
     hideOthers: { label: "Hide others' cursors", hint: "Their cursors disappear from your screen." },
   },
+  /** Screen-reader announcements (at most one per 10 s). */
+  announce: {
+    joined: (name: string) => `${name} joined`,
+    joinedMany: (n: number) => `${n} people joined`,
+  },
   edge: {
     aboveLabel: "People further up the page",
     belowLabel: "People further down the page",
@@ -182,5 +185,7 @@ export const multiplayer = {
 } as const;
 
 export const footer = {
+  privacy:
+    "Live cursors are anonymous and never stored.",
   builtWith: "Built on AWS · Amplify · AppSync Events · Lambda · DynamoDB",
 } as const;

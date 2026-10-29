@@ -1,11 +1,18 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ConnectionStatus, RoomConnection } from "@/lib/realtime/client";
 import { createFloodGuard } from "@/lib/realtime/floodGuard";
 import { loadIdentity } from "@/lib/realtime/identity";
 import { useRoomSetting } from "@/lib/realtime/settings";
-import { parseRoomEvt, senderOf, type Device, type Visitor } from "@/lib/realtime/types";
+import {
+  type Device,
+  type DoodleEvt,
+  parseDoodleEvt,
+  parseRoomEvt,
+  senderOf,
+  type Visitor,
+} from "@/lib/realtime/types";
 import { type RemoteCursor, useCursors } from "@/lib/realtime/useCursors";
 import { type Peer, usePresence } from "@/lib/realtime/usePresence";
 
@@ -25,6 +32,8 @@ type Multiplayer = {
   /** Hide others' cursors (and edge indicators) on this screen only. */
   hideOthers: boolean;
   setHideOthers: (on: boolean) => void;
+  /** Confirmed guestbook changes from the server channel. */
+  subscribeDoodle: (listener: (evt: DoodleEvt) => void) => () => void;
 };
 
 const MultiplayerContext = createContext<Multiplayer | null>(null);
@@ -61,11 +70,23 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
     hidden: invisible || !settingsLoaded,
   });
   const cursors = useCursors({ connection, status, self, device, joined: presence.joined });
+  const doodleListeners = useRef(new Set<(evt: DoodleEvt) => void>());
+  const subscribeDoodle = useCallback((listener: (evt: DoodleEvt) => void) => {
+    doodleListeners.current.add(listener);
+    return () => {
+      doodleListeners.current.delete(listener);
+    };
+  }, []);
 
   // Incoming events route through refs, so the socket never needs re-wiring.
-  const handlers = useRef({ presence: presence.receive, cursor: cursors.receive, selfId: self?.id });
+  const route = () => ({
+    presence: presence.receive,
+    cursor: cursors.receive,
+    selfId: self?.id,
+  });
+  const handlers = useRef(route());
   useEffect(() => {
-    handlers.current = { presence: presence.receive, cursor: cursors.receive, selfId: self?.id };
+    handlers.current = route();
   });
 
   useEffect(() => {
@@ -92,8 +113,13 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
             const sender = senderOf(evt);
             // AppSync echoes our own events back to us.
             if (sender === handlers.current.selfId || !allow(sender)) return;
-            if (evt.type === "cursor") handlers.current.cursor(evt);
-            else handlers.current.presence(evt);
+            const h = handlers.current;
+            if (evt.type === "cursor") h.cursor(evt);
+            else h.presence(evt);
+          },
+          onServerEvent: (payload) => {
+            const evt = parseDoodleEvt(payload);
+            if (evt) for (const listener of doodleListeners.current) listener(evt);
           },
         });
         setConnection(conn);
@@ -141,6 +167,7 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
       setInvisible,
       hideOthers,
       setHideOthers,
+      subscribeDoodle,
     }),
     [
       status,
@@ -153,6 +180,7 @@ export function MultiplayerProvider({ children }: { children: React.ReactNode })
       setInvisible,
       hideOthers,
       setHideOthers,
+      subscribeDoodle,
     ],
   );
 

@@ -49,3 +49,8 @@ amplifyconfiguration*
 .npm
 
 .plans
+
+# local agent tooling
+.claude/
+.agents/
+skills-lock.json

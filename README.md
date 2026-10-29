@@ -1,39 +1,21 @@
 # Live Portfolio
 
-My portfolio built for the **AWS Student Builder Challenge: Build Your Tech Superpower**.
+My portfolio, built for the AWS Student Builder Challenge: Build Your Tech Superpower.
 
-The page is **multiplayer**: you can see the other people who are reading it. 
-
-> 🚧 Work in progress. Items marked _(planned)_ are not built yet.
-
-### What's built
-
-**The portfolio**
-- The full single-page portfolio: **Hero → About → Projects → Guestbook → Contact**, as a static export.
-- The interactive ASCII sea in the hero and the contact panel (sharks, fish, bubbles and ripples that react to your cursor).
-- The Amplify Hosting pipeline, with an Amplify Gen 2 backend so the deployment runs end to end.
-- The guestbook shows its seed art and colour palette; painting is planned.
-
-**The live room**
-- An AppSync Events API (`room` namespace) with an `onPublish` validator that drops malformed, out-of-range or oversized events.
-- Anonymous per-tab identities ("Amber Eel"), live cursors on desktop, and scroll markers for phone visitors.
-- Presence with late-join replies, away states and timeouts. Untouched tabs (and Lighthouse) are never counted.
-- The count in the hero badge ("You + 2 swimming here") and the nav bubble, and the About selection held by the newest visitor.
-- A dock with each visitor's sea creature (🦈 🐙 🐢) on their colour: the newest three side by side, then "+N", which opens a list of everyone. It also holds Invite (copy link) and two settings: **Go invisible** (listen without being seen or counted) and **Hide others' cursors**, both remembered across visits.
-- Edge indicators: people scrolled above or below you show as coloured pills at the top or bottom of the screen; click one to jump to them.
-- Remote cursors stir the ASCII sea too.
+The page is multiplayer: you can see the other people reading it, and leave a mark that everyone sees.
 
 ## The creative feature: "You're not alone here"
 
-| Feature | What it does | Status |
-|---|---|---|
-| Live cursors + presence | Every visitor gets an anonymous name and colour ("Teal Otter") and a labelled cursor | ✅ |
-| Reactions | 👋 🔥 🎉 💡 bursts that everyone sees | _(planned)_ |
-| Cursor chat | Press `/` to say something short; it fades after ~4 s and is never stored | _(planned)_ |
-| Ghost replays | When you're alone, a few earlier visitors' cursor paths replay as translucent "ghosts" | _(planned)_ |
-| Pixel guestbook | A shared 32 × 32 canvas; every pixel you place appears live for everyone | _(planned)_ |
+| Feature | What it does |
+|---|---|
+| **Live cursors + presence** | Every visitor gets an anonymous name and colour ("Amber Eel") and a labelled cursor that lands on the same card on any screen size. Phone visitors appear as a pill that follows their scrolling. |
+| **Live count** | The hero badge reads "You + 2 swimming here", and the nav bubble rises while others are around. |
+| **Dock** | Everyone here as sea creatures (🦈 🐙 🐢), a "+N" list of the whole room, Invite (copy link), and two settings: **Go invisible** and **Hide others' cursors**. |
+| **Edge indicators** | People scrolled above or below you show as coloured pills at the screen edge; click one to jump to them. |
+| **Pixel guestbook** | A shared 32 × 32 canvas. Every pixel is confirmed by the server and appears live for everyone. Paintable by mouse, touch or keyboard, with a small ink budget. |
+| **The sea reacts** | Sharks and fish in the ASCII sea react to everyone's cursors, not just yours. |
 
-**Why this feature?** _(to write)_ A portfolio is usually a lonely page, so I made this one a room.
+**Why this feature?** Prodpod, my study platform, taught me that people stay where other people are. A portfolio is usually a lonely page, so I made this one a room.
 
 ## Architecture
 
@@ -42,33 +24,45 @@ flowchart LR
   subgraph Browser
     UI[Next.js static site]
   end
-  UI <-- WebSocket --> EV[AWS AppSync Events]
-  UI -- HTTPS --> AG[API Gateway HTTP API]
-  AG --> L[AWS Lambda] --> DB[(Amazon DynamoDB)]
-  L -- publish --> EV
+  UI <-- "WebSocket (API key):<br/>cursors, presence" --> EV[AWS AppSync Events<br/>room: onPublish validator<br/>server: IAM publish only]
+  UI -- HTTPS --> AG[API Gateway HTTP API<br/>throttled, CORS]
+  AG --> DO[doodle] --> T2[(DynamoDB<br/>Doodle)]
+  DO -- "IAM-signed publish" --> EV
+  AC[adminClear<br/>no route] --> T2
+  AC -- "IAM-signed publish" --> EV
   GH[GitHub main] --> AH[AWS Amplify Hosting<br/>CI/CD] --> UI
-  L -.-> CW[Amazon CloudWatch Logs]
+  DO & AC -.-> CW[Amazon CloudWatch Logs]
 ```
 
 | AWS service | What it does here |
 |---|---|
-| **AWS Amplify Hosting** | Builds every push to `main` and serves the static site from a CDN |
-| **AWS Amplify Gen 2** | Defines the backend in TypeScript (`amplify/`) and deploys it with CDK |
-| **AWS AppSync Events** | WebSocket pub/sub for cursors and presence (reactions and chat planned), with an `onPublish` handler validating every event |
-| **Amazon API Gateway (HTTP API)** | Rate-limited HTTPS endpoints for ghosts and the guestbook _(planned)_ |
-| **AWS Lambda** | Validates input and reads/writes state _(planned)_ |
-| **Amazon DynamoDB** | Ghost paths (7-day TTL) and the guestbook grid _(planned)_ |
-| **Amazon CloudWatch** | Lambda logs (automatic) |
-| **AWS Budgets** | Billing alarm to keep costs near zero _(planned)_ |
+| **AWS Amplify Hosting** | Builds every push to `main`, deploys the backend, and serves the static site from a CDN |
+| **AWS Amplify Gen 2** | Defines the whole backend in TypeScript ([`amplify/backend.ts`](amplify/backend.ts)) and deploys it with CDK |
+| **AWS AppSync Events** | WebSocket pub/sub. Namespace `room` carries visitors' cursors and presence through an `onPublish` validator; namespace `server` carries confirmed guestbook pixels and accepts **IAM publishes only** |
+| **Amazon API Gateway (HTTP API)** | `GET/POST /doodle`, with stage throttling (burst 20, 10 req/s) and CORS limited to the site |
+| **AWS Lambda** | Two small Node.js functions: paint a pixel and broadcast it, reset the guestbook |
+| **Amazon DynamoDB** | `Doodle` (one item; each pixel is an atomic `SET cells[i]`) |
+| **Amazon CloudWatch** | Lambda logs and API metrics |
+| **AWS Budgets** | A $5/month budget with email alerts at 50%, 80% and 100% of actual spend and 100% of forecast |
+
+### Design decisions
+
+- **Clients can't fake a pixel.** A browser only *requests* a pixel (`POST /doodle`). The Lambda writes it to DynamoDB and then publishes the confirmed change, signed with its IAM role, to `/server/main`. An `onPublish` handler can't tell an API-key publish from an IAM one, so the split is made by auth mode on a namespace of its own: browsers can subscribe to `server` but get a **401** if they try to publish there (tested).
+- **Validation at the edge.** The `room` namespace's [`onPublish` handler](amplify/events/room-onPublish.js) (APPSYNC_JS) drops any event with an unknown type, coordinates outside 0..1, a malformed id, a colour outside the palette, or a payload over 1 KB. The client re-checks what it receives and ignores any visitor sending more than 30 events a second.
+- **HTTP API, not Lambda Function URLs.** One base URL, CORS in one place, and stage-level throttling, which Function URLs don't have. At this scale it costs next to nothing (the first million requests a month are free for 12 months, then $1 per million).
+- **Anchor-based coordinates.** A cursor is sent as "x/y inside this card" (`[data-anchor]`), not as pixels, so it lands on the same card on a phone and a widescreen even though the grid reflows.
+- **Only real people count.** A tab listens straight away but joins (and is counted) only after its first real input, which keeps crawlers, Lighthouse and untouched tabs out of the count.
+- **No admin endpoint.** Resetting the guestbook is a Lambda with no HTTP route, invoked with AWS credentials ([`scripts/clear-guestbook.mjs`](scripts/clear-guestbook.mjs)), so there is no admin token to leak.
+- **Privacy.** Visitors are anonymous, and cursors are relayed live but never stored.
 
 ## Tech stack
 
 - **Frontend:** Next.js 16 (App Router, static export) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
-- **Backend:** AWS Amplify Gen 2 · region `eu-west-2` (London)
+- **Backend:** AWS Amplify Gen 2 · AppSync Events · API Gateway · Lambda (Node.js) · DynamoDB · region `eu-west-2` (London)
 
 ## Run it locally
 
-Requires Node.js 20+ and AWS credentials configured for the Amplify sandbox.
+Requires Node.js 22 and AWS credentials for the Amplify sandbox.
 
 ```bash
 npm install
@@ -76,19 +70,21 @@ npx ampx sandbox      # deploys a personal cloud backend and writes amplify_outp
 npm run dev           # http://localhost:3000
 ```
 
-Without the sandbox, the site still works as a normal static portfolio; the multiplayer layer stays hidden. (`npm run dev` and `npm run build` write a stub `amplify_outputs.json` when there isn't one.)
+Without the sandbox, the site still works as a normal static portfolio: the multiplayer layer stays hidden and the guestbook shows its starting drawing. (`npm run dev` and `npm run build` write a stub `amplify_outputs.json` when there isn't one.)
 
 On Node 25, `ampx` crashes on Node's built-in `localStorage`; run it as `NODE_OPTIONS=--no-webstorage npx ampx sandbox`, or use Node 22 like the pipeline.
 
 **Testing multiplayer:** open two desktop tabs, plus a phone on the same network at `http://<your-lan-ip>:3000`. A tab joins the room on its first scroll, key press or mouse move.
 
-**Checking the validator:** with the sandbox deployed, `node scripts/check-onpublish.mjs` publishes good and bad events and checks that only the good ones get through.
+**Scripts:**
+- `node scripts/check-onpublish.mjs` publishes good and bad events to the deployed room and checks that only the good ones get through.
+- `node scripts/clear-guestbook.mjs` resets the guestbook to its starting drawing for everyone.
+
+To check the production build: `npm run build` (writes the static site to `out/`).
 
 ### API key rotation
 
 The browser uses a public AppSync API key (public by design: the `onPublish` validator and a client-side flood guard limit what it can do). AppSync caps API keys at **365 days**. The expiry is recomputed on every deploy, so each push to `main` extends it to a year from then. If the site goes a year without a deploy, redeploy (or extend the key in the AppSync console) and the key keeps working.
-
-To check the production build: `npm run build` (writes the static site to `out/`).
 
 ## Deployment
 
@@ -97,26 +93,34 @@ Amplify Hosting is connected to this repo's `main` branch. [`amplify.yml`](ampli
 1. **Backend:** `npx ampx pipeline-deploy` deploys `amplify/` and generates `amplify_outputs.json`.
 2. **Frontend:** `npm run build` creates the static export in `out/`.
 
-No secrets are committed. `amplify_outputs.json` is gitignored and generated in the pipeline.
+CORS on the HTTP API allows the branch's own `amplifyapp.com` domain (from the `AWS_APP_ID` and `AWS_BRANCH` the pipeline provides) and `localhost:3000`; add a custom domain with the `EXTRA_ALLOWED_ORIGINS` environment variable (comma-separated). A personal sandbox allows any origin so phones on the LAN can test against it.
+
+## Cost
+
+Serverless only (no EC2, ECS or RDS), all pay-per-request: AppSync Events, API Gateway, Lambda and on-demand DynamoDB cost nothing while idle and fractions of a cent per visit. API Gateway throttling and the `onPublish` validator cap what abuse can cost. An AWS Budgets alarm ($5/month; alerts at 50%, 80%, 100% actual and 100% forecast) catches anything unexpected.
 
 ## Project structure
 
 ```
-amplify/                backend (Amplify Gen 2): the Events API and its onPublish handler (events/)
+amplify/
+  backend.ts            Events API, HTTP API, tables, IAM grants, CORS, outputs
+  events/               room-onPublish.js (APPSYNC_JS validator)
+  functions/            doodle, admin-clear
+  shared/               HTTP helpers, guestbook storage, IAM-signed publish
 src/app/                Next.js layout, page, global styles, icon.svg (favicon)
 src/components/
   sections/             Hero, About, Projects, Guestbook, Contact
   layout/               nav, footer, section intro, scroll-reveal observer
   sea/                  AsciiSea (canvas), AsciiScene (card art), FishSchool, SeaDecor
-  hero/                 HeroGrid (guide lines), InlineShark
-  multiplayer/          room provider, cursor layer, dock, live badge, selection holder
+  hero/                 InlineShark
+  multiplayer/          room provider, cursor layer, edge indicators, dock, live badge
+  guestbook/            live canvas, palette picker
   ui/                   shadcn/ui components, restyled
 src/lib/realtime/       protocol types, connection + backoff, identity, anchors, presence, cursors
-src/lib/content.ts      all portfolio copy in one place
-src/lib/ascii-scenes.ts frames for the About cards' ASCII art
-src/lib/guestbook.ts    guestbook grid size, palette and seed art (shared with the backend)
-.plans/                 design specs, one per design pass
-scripts/                outputs stub, onPublish check
+src/lib/api.ts          HTTP API client (retries on throttling)
+src/lib/content.ts      all copy in one place
+src/lib/guestbook.ts    grid size, palette and seed art (shared with the Lambdas)
+scripts/                outputs stub, onPublish check, guestbook reset
 ```
 
 ## Design
@@ -134,18 +138,15 @@ Around the sea:
 - **Buttons:** glass pills, white glass on the sea and teal glass on white, that grow slightly on hover. Nav links roll on hover.
 - **About:** a fact grid with hairlines only between cells, no boxes. Each cell has a depth reading (−08 m … −40 m, deeper as you go) and a small looping ASCII scene: a shark, rising bubbles, a fish school, a jellyfish, kelp with a sonar ping. Scenes only animate while on screen.
 - **Small touches:** `><>` fish drifting above section labels, bubble bullets, and a bubble logomark beside the name (also the favicon).
-- **References:** the hero and buttons follow [DayDream](https://thedaydream.studio/) and the fact grid follows [Linear](https://linear.app/), with the hue and motifs moved under the sea.
-- **Type:** Aspekta (SIL OFL, self-hosted variable font), with Geist Mono for `[01] · LABELS`.
-- **Components:** shadcn/ui on Radix, restyled: pill buttons, bracket badges, swatch toggles, and a glass Sheet for the mobile menu.
 - **Performance:** the canvas runs at no more than 30 fps, pauses off-screen or in a hidden tab, and shows one still frame under `prefers-reduced-motion`. Phones get one shark and coarser cells. The CSS gradient paints first, so the canvas never delays the first paint.
 - **Accessibility:** a skip link, visible focus rings, keyboard access everywhere, reduced-motion fallbacks (the sea, card scenes, drifting fish and button motion all hold still), and a mask that keeps glyphs out from behind text. All ASCII art is decorative and hidden from screen readers.
 
 ## Challenges & what I learned
 
-_(to write as the build progresses)_
-
-- **Relative coordinates:** making a cursor point at the same card on a phone and on a widescreen monitor.
-- **The empty-room problem:** a multiplayer page with nobody else on it is a sad page. Ghost replays are the fix.
-- **Reconnects:** WebSockets drop; the page has to recover quietly.
-- **Cost control:** serverless only, with a budget alarm.
-- **Moderating anonymous input:** rate limits, length caps and validation at the edge.
+- **Relative coordinates.** Pixel positions are meaningless across screen sizes, so cursors travel as "x/y inside this card". Each receiver resolves the card on its own layout every frame. Measured end to end, a cursor lands within a pixel of where the other tab pointed.
+- **Trusting the server, not the client.** The public API key means anyone can publish to the room, so every event goes through a validator, and anything that must be authoritative (guestbook pixels) is published only by a Lambda using IAM, on a namespace browsers can't publish to.
+- **Testing a validator without deploying it.** I tested the APPSYNC_JS handler against AppSync's real runtime with the `EvaluateCode` API before it ever ran. The runtime has no regex literals, no `try/catch` and no `++`.
+- **Performance budget.** Adding the multiplayer layer first dropped Lighthouse performance from about 90 to the 70s and 80s: the Amplify client was downloading during page load and delaying the animated hero. Connecting only after the page has loaded and the browser is idle, and lazy-loading the dock and cursor layers, brought it back without anyone noticing the extra half-second.
+- **Reconnects.** WebSockets drop. The client retries with exponential backoff (1 s to 30 s, full jitter), hides all multiplayer UI while offline so the page is just a portfolio, and on reconnect re-announces itself and refetches the guestbook in case it missed a pixel.
+- **New-account limits.** Load testing hit a Lambda concurrency limit of 10 (the default for new AWS accounts) and API Gateway answered 429. Reads now retry with jittered backoff, and painting undoes its optimistic pixel if the server refuses it.
+- **Moderating anonymous input.** Rate limits at API Gateway, length and range caps in the validator and Lambdas, an ink budget on the guestbook, and a client flood guard.

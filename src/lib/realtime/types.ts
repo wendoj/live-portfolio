@@ -34,7 +34,13 @@ export type CursorEvt = {
 
 export type RoomEvt = PresenceEvt | CursorEvt;
 
+/** Server-only events (IAM publish): confirmed guestbook changes. */
+export type DoodleEvt =
+  | { type: "doodle"; pixels: [i: number, c: number][]; version: number }
+  | { type: "doodle-reset"; cells: string; version: number };
+
 export const ROOM_CHANNEL = "room/main";
+export const SERVER_CHANNEL = "server/main";
 
 const PRESENCE_TYPES = new Set(["join", "here", "heartbeat", "leave"]);
 
@@ -73,3 +79,12 @@ export function parseRoomEvt(raw: unknown): RoomEvt | null {
 
 /** The visitor id an event belongs to. */
 export const senderOf = (e: RoomEvt) => (e.type === "cursor" ? e.id : e.visitor.id);
+
+export function parseDoodleEvt(raw: unknown): DoodleEvt | null {
+  if (!raw || typeof raw !== "object") return null;
+  const e = raw as Record<string, unknown>;
+  if (typeof e.version !== "number") return null;
+  if (e.type === "doodle" && Array.isArray(e.pixels)) return e as DoodleEvt;
+  if (e.type === "doodle-reset" && typeof e.cells === "string") return e as DoodleEvt;
+  return null;
+}

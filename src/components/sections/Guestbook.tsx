@@ -1,34 +1,9 @@
+import { GuestbookLive } from "@/components/guestbook/GuestbookLive";
 import { PalettePicker } from "@/components/guestbook/PalettePicker";
+import { CanvasPixels } from "@/components/guestbook/StaticCanvas";
 import { SectionIntro } from "@/components/layout/SectionIntro";
 import { guestbook } from "@/lib/content";
 import { GRID_SIZE, SEED_ART } from "@/lib/guestbook";
-
-/** Static render of the shared canvas; painting it live is still to come. */
-function Canvas({ cells }: { cells: string }) {
-  const pixels = [...cells].flatMap((c, i) =>
-    c === "0" ? [] : [{ x: i % GRID_SIZE, y: Math.floor(i / GRID_SIZE), c }],
-  );
-
-  return (
-    <svg
-      role="img"
-      aria-label="Guestbook canvas. The starting drawing shows a cursor next to the word HI, a heart and the colour palette."
-      viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
-      shapeRendering="crispEdges"
-      className="block aspect-square w-full rounded-[16px] bg-muted"
-    >
-      <defs>
-        <pattern id="gb-dots" width="1" height="1" patternUnits="userSpaceOnUse">
-          <circle cx="0.5" cy="0.5" r="0.06" fill="oklch(0.18 0.012 265 / 0.18)" />
-        </pattern>
-      </defs>
-      <rect width={GRID_SIZE} height={GRID_SIZE} fill="url(#gb-dots)" />
-      {pixels.map(({ x, y, c }) => (
-        <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={`var(--px-${c})`} />
-      ))}
-    </svg>
-  );
-}
 
 export function Guestbook() {
   return (
@@ -52,11 +27,22 @@ export function Guestbook() {
           data-anchor="guestbook-canvas"
           className="rounded-[29px] border border-transparent bg-card p-3 shadow-[0_0_0_1px_oklch(0.18_0.012_265/0.06),0_24px_48px_-24px_oklch(0.4_0.1_230/0.3)]"
         >
-          <Canvas cells={SEED_ART} />
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-3 pb-1">
-            <PalettePicker />
-            <span className="label-mono text-muted-foreground tabular-nums">Ink 30/30</span>
-          </div>
+          {/* The seed art, server-rendered; the live canvas takes over near the viewport. */}
+          <GuestbookLive>
+            <svg
+              role="img"
+              aria-label={guestbook.canvasLabel}
+              viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
+              shapeRendering="crispEdges"
+              className="block aspect-square w-full rounded-[16px] bg-muted"
+            >
+              <CanvasPixels cells={SEED_ART} />
+            </svg>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-3 pb-1">
+              <PalettePicker value={2} disabled />
+              <span className="label-mono text-muted-foreground tabular-nums">{guestbook.ink(30, 30)}</span>
+            </div>
+          </GuestbookLive>
         </div>
       </div>
     </section>

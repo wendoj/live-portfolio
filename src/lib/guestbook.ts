@@ -1,6 +1,6 @@
 /**
- * Shared constants for the pixel guestbook. The backend will import
- * these too, so the grid size, palette and seed art have one source of truth.
+ * Shared constants for the pixel guestbook. The doodle Lambda imports
+ * them too, so the grid size, palette and seed art have one source of truth.
  */
 
 export const GRID_SIZE = 32;

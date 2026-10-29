@@ -104,7 +104,6 @@ export function Projects() {
         soft="Real people use them."
       />
 
-      {/* Prodpod: featured, but compact. */}
       <article
         data-anchor="project-prodpod"
         aria-labelledby="project-prodpod-title"
@@ -113,7 +112,9 @@ export function Projects() {
       >
         <div>
           <MediaFrame className="aspect-[16/10] sm:aspect-video">
-            {prodpod.image ? (
+            {prodpod.video ? (
+              <VideoMedia src={prodpod.video} label={`${prodpod.name} demo`} />
+            ) : prodpod.image ? (
               // eslint-disable-next-line @next/next/no-img-element -- static export
               <img src={prodpod.image} alt="Prodpod study room" className="size-full object-cover" />
             ) : (
@@ -142,7 +143,6 @@ export function Projects() {
         </div>
       </article>
 
-      {/* This site. */}
       <article
         data-anchor="project-portfolio"
         aria-labelledby="project-portfolio-title"
@@ -170,7 +170,6 @@ export function Projects() {
         </div>
       </article>
 
-      {/* Earlier work from before university. */}
       <div className="mt-24">
         <Badge variant="bracket" data-reveal>
           Earlier work

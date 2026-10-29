@@ -12,6 +12,7 @@ export function Footer() {
         </p>
         <p className="label-mono md:max-w-72 md:text-right">{footer.builtWith}</p>
       </div>
+      <p className="mt-6 max-w-xl text-xs leading-relaxed text-muted-foreground">{footer.privacy}</p>
     </footer>
   );
 }

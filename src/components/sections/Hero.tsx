@@ -50,7 +50,6 @@ export function Hero() {
       </div>
 
       <div id="hero-copy" className="relative z-10 flex max-w-3xl flex-col items-center">
-        {/* "Open to internships", or "● You + 2 swimming here" with company. */}
         <LiveBadge className="enter" style={stagger(0)} />
 
         <h1

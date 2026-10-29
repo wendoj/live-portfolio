@@ -114,7 +114,6 @@ export function usePresence({
     clearTimeout(heartbeatTimer.current);
   }, [send]);
 
-  // Join on the first real input.
   useEffect(() => {
     const onFirstInput = () => {
       for (const type of FIRST_INPUT_EVENTS) window.removeEventListener(type, onFirstInput);

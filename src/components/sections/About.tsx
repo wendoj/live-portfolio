@@ -133,7 +133,6 @@ function Now() {
     <ul className="flex flex-col gap-3">
       {about.now.map((item) => (
         <li key={item} className="flex gap-3 text-lg leading-snug font-medium tracking-[-0.03em]">
-          {/* A bubble for a bullet. */}
           <span aria-hidden className="mt-[0.5em] size-2 shrink-0 rounded-full border-[1.5px] border-sea" />
           {item}
         </li>

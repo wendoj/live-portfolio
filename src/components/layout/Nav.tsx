@@ -91,9 +91,9 @@ export function Nav() {
     <header className="pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-4">
       <nav
         aria-label="Sections"
-        // Over the hero there is no container: just the name and plain links,
-        // like the reference. Past the hero it becomes a frosted pill. The
-        // width change is skipped under reduced motion.
+        // Over the hero there is no container: just the name and plain links.
+        // Past the hero it becomes a frosted pill. The width change is skipped
+        // under reduced motion.
         className={cn(
           "pointer-events-auto flex h-14 w-full items-center gap-2 rounded-full border border-transparent pr-2 pl-5 transition-[max-width,background-color,color,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-[background-color,color,box-shadow]",
           overSea

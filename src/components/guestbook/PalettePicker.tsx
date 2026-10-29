@@ -1,22 +1,28 @@
 "use client";
 
 import { EraserIcon } from "lucide-react";
-import { useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PALETTE } from "@/lib/guestbook";
 
-/** Colour picker for the guestbook. The choice will drive painting once it opens. */
-export function PalettePicker() {
-  const [colour, setColour] = useState("2");
-
+/** Colour picker for the guestbook: palette ids 0 (eraser) to 7. */
+export function PalettePicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number;
+  onChange?: (id: number) => void;
+  disabled?: boolean;
+}) {
   return (
     <ToggleGroup
       type="single"
       variant="swatch"
       spacing={2}
-      value={colour}
-      onValueChange={(v) => v && setColour(v)}
+      value={String(value)}
+      onValueChange={(v) => v && onChange?.(Number(v))}
+      disabled={disabled}
       aria-label="Paint colour"
       className="flex-wrap"
     >
@@ -32,7 +38,9 @@ export function PalettePicker() {
               {p.id === 0 && <EraserIcon className="size-4" strokeWidth={1.75} />}
             </ToggleGroupItem>
           </TooltipTrigger>
-          <TooltipContent>{p.name}</TooltipContent>
+          <TooltipContent>
+            {p.name} · {p.id}
+          </TooltipContent>
         </Tooltip>
       ))}
     </ToggleGroup>

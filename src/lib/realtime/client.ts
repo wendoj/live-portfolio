@@ -4,10 +4,11 @@ import { Hub } from "aws-amplify/utils";
 // Written by `npx ampx sandbox` / the pipeline; a stub without `custom.events`
 // (scripts/ensure-amplify-outputs.mjs) keeps the site working as a static page.
 import outputs from "../../../amplify_outputs.json";
-import { ROOM_CHANNEL, type RoomEvt } from "./types";
+import { ROOM_CHANNEL, type RoomEvt, SERVER_CHANNEL } from "./types";
 
 /**
- * The WebSocket connection to /room/main.
+ * The WebSocket connection: /room/main (visitors publish and listen) and
+ * /server/main (listen only: confirmed guestbook pixels from the Lambda).
  *
  * Amplify already reconnects a socket that drops mid-session (and reports it
  * through Hub). This wrapper adds what it doesn't do: retrying a failed
@@ -52,9 +53,11 @@ const LIVE_STATES = new Set<string>([ConnectionState.Connected, ConnectionState.
 
 export function createRoomConnection({
   onEvent,
+  onServerEvent,
   onStatus,
 }: {
   onEvent: (payload: unknown) => void;
+  onServerEvent: (payload: unknown) => void;
   onStatus: (status: ConnectionStatus) => void;
 }) {
   if (!configure()) {
@@ -63,7 +66,8 @@ export function createRoomConnection({
   }
 
   let channel: EventsChannel | null = null;
-  let subscription: { unsubscribe(): void } | null = null;
+  let serverChannel: EventsChannel | null = null;
+  let subscriptions: { unsubscribe(): void }[] = [];
   let subscribed = false;
   let socketLive = false;
   let attempt = 0;
@@ -91,10 +95,12 @@ export function createRoomConnection({
   });
 
   const teardown = () => {
-    subscription?.unsubscribe();
+    for (const sub of subscriptions) sub.unsubscribe();
     channel?.close();
-    subscription = null;
+    serverChannel?.close();
+    subscriptions = [];
     channel = null;
+    serverChannel = null;
     subscribed = false;
   };
 
@@ -113,16 +119,22 @@ export function createRoomConnection({
   async function open() {
     update();
     try {
-      const ch = await events.connect(ROOM_CHANNEL);
-      if (closed) return ch.close();
-      channel = ch;
-      const sub = ch.subscribe({
-        next: (data: { event?: unknown }) => onEvent(data?.event),
-        error: () => retry(),
-      });
-      subscription = sub;
-      await sub.ready;
-      if (closed || subscription !== sub) return;
+      // Both channels share Amplify's one socket.
+      const [room, server] = await Promise.all([events.connect(ROOM_CHANNEL), events.connect(SERVER_CHANNEL)]);
+      if (closed) {
+        room.close();
+        server.close();
+        return;
+      }
+      channel = room;
+      serverChannel = server;
+      const subs = [
+        room.subscribe({ next: (data: { event?: unknown }) => onEvent(data?.event), error: () => retry() }),
+        server.subscribe({ next: (data: { event?: unknown }) => onServerEvent(data?.event), error: () => retry() }),
+      ];
+      subscriptions = subs;
+      await Promise.all(subs.map((sub) => sub.ready));
+      if (closed || subscriptions !== subs) return;
       subscribed = true;
       // The subscription ACK proves the socket is up, whatever Hub said last.
       socketLive = true;
