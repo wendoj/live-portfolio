@@ -13,7 +13,7 @@ The page is multiplayer: you can see the other people reading it, and leave a ma
 | **Dock** | Everyone here as sea creatures (🦈 🐙 🐢), a "+N" list of the whole room, Invite (copy link), and two settings: **Go invisible** and **Hide others' cursors**. |
 | **Edge indicators** | People scrolled above or below you show as coloured pills at the screen edge; click one to jump to them. |
 | **Pixel guestbook** | A shared 32 × 32 canvas. Every pixel is confirmed by the server and appears live for everyone. Paintable by mouse, touch or keyboard, with a small ink budget. |
-| **The sea reacts** | Sharks and fish in the ASCII sea react to everyone's cursors, not just yours. |
+| **The sea reacts** | Sharks and fish in the ASCII sea react to everyone's cursors, not just yours. So does the small sea behind the pufferfish in Projects. |
 
 **Why this feature?** A portfolio is usually a lonely page, so I made this one a room.
 
@@ -79,6 +79,8 @@ On Node 25, `ampx` crashes on Node's built-in `localStorage`; run it as `NODE_OP
 **Scripts:**
 - `node scripts/check-onpublish.mjs` publishes good and bad events to the deployed room and checks that only the good ones get through.
 - `node scripts/clear-guestbook.mjs` resets the guestbook to its starting drawing for everyone.
+- `npm run check:contrast` checks every text and art colour pair against every depth zone, in both themes, and fails below WCAG targets (4.5:1 text, 3:1 art). Run it after changing a token in `globals.css`.
+- `node scripts/gen-ascii-creatures.mjs` regenerates the shaded ASCII creatures (dolphin, pufferfish, anglerfish) into `src/lib/ascii-creatures.generated.ts`. Edit the shapes in the script, not the generated file.
 
 To check the production build: `npm run build` (writes the static site to `out/`).
 
@@ -107,39 +109,76 @@ amplify/
   events/               room-onPublish.js (APPSYNC_JS validator)
   functions/            doodle, admin-clear
   shared/               HTTP helpers, guestbook storage, IAM-signed publish
-src/app/                Next.js layout, page, global styles, icon.svg (favicon)
+src/app/                Next.js layout (pre-paint theme script), page (depth zones), global styles + tokens
 src/components/
-  sections/             Hero, About, Projects, Guestbook, Contact
+  sections/             Hero, About (bento), Projects, Guestbook, Contact
   layout/               nav, footer, section intro, scroll-reveal observer
-  sea/                  AsciiSea (canvas), AsciiScene (card art), FishSchool, SeaDecor
+  sea/                  AsciiSea (canvas), AsciiScene (frame player), ZoneLife (whale, anglerfish, seabed),
+                        FishSchool, SeaDecor (sun rays / moon)
+  depth/                SoundingLine (desktop depth gauge), NavDepth (compact readout)
+  theme/                ThemeToggle
+  about/                ManchesterClock
+  projects/             Pufferfish, VideoMedia
   hero/                 InlineShark
   multiplayer/          room provider, cursor layer, edge indicators, dock, live badge
   guestbook/            live canvas, palette picker
   ui/                   shadcn/ui components, restyled
 src/lib/realtime/       protocol types, connection + backoff, identity, anchors, presence, cursors
+src/lib/theme.ts        light / dark: pre-paint script, apply, follow the OS
+src/lib/ascii-dissolve.ts  the day/night ASCII dissolve
+src/lib/depth.ts        scroll → depth tracker (shared by the gauge and the nav readout)
+src/lib/ascii-scenes.ts small looping ASCII scenes; ascii-creatures.generated.ts holds the shaded creatures
 src/lib/api.ts          HTTP API client (retries on throttling)
-src/lib/content.ts      all copy in one place
+src/lib/content.ts      all copy in one place, including the depth zones
 src/lib/guestbook.ts    grid size, palette and seed art (shared with the Lambdas)
-scripts/                outputs stub, onPublish check, guestbook reset
+scripts/                outputs stub, onPublish check, guestbook reset, contrast check, creature generator
 ```
 
 ## Design
 
-**"Shallows":** white pages, with a sunlit teal lagoon (the hero and the contact panel) where visitors meet. Everything in the water is **ASCII characters drawn on a canvas, and it reacts to the people on the page** ([AsciiSea.tsx](src/components/sea/AsciiSea.tsx), no libraries; inspired by [ascii-sharks](https://github.com/stackedlol/ascii-sharks), with original code and art):
+**"The dive":** scrolling the page is a dive, from a sunlit lagoon at the top to the seabed at the bottom. Everything in the water is ASCII characters, and much of it reacts to the people on the page.
+
+**Depth zones.** Each section is a real ocean zone, and the water deepens continuously as you scroll (each section is a full-width band whose colour runs from the zone above into its own):
+
+| Section | Zone | Depth |
+|---|---|---|
+| Hero | Surface | 0 m |
+| About | Sunlight zone | 0–200 m |
+| Projects | Twilight zone | 200–1,000 m |
+| Guestbook | Midnight zone | 1,000–4,000 m |
+| Contact | Seabed | ~4,200 m |
+
+**Sounding line.** On desktop, a plumb line made of `│` glyphs hangs down the left edge and pays out as you dive, with a sinker showing the live depth and zone. Knots mark where each deeper zone begins. It is hidden over the hero and drops in at the same moment the nav turns into a glass pill (they share one trigger), and it turns white over the teal Contact panel. On smaller screens the depth shows inside the nav pill. Scroll updates write straight to the DOM (a `clip-path` reveal and a `translate`), so a scroll frame does no layout.
+
+**The hero sea** ([AsciiSea.tsx](src/components/sea/AsciiSea.tsx), a canvas with no libraries; inspired by [ascii-sharks](https://github.com/stackedlol/ascii-sharks), with original code and art):
 
 - **Caustics:** a slowly shifting web of light on the water (a warped Voronoi pattern), strongest near the surface.
 - **Sharks:** each one is drawn by a shading function rather than fixed art, so it bends as it swims and turns in 3D. Depth sets each shark's size, opacity and parallax. Sharks are **curious**: they drift towards a cursor that holds still and dart away from one that moves fast. Clicking a shark startles it and releases a burst of bubbles.
 - **Fish and bubbles:** a small school of `><>` fish (boids) that scatters from cursors and sharks, and bubbles that grow as they rise and pop near the surface.
 - **Ripples:** every cursor, yours and other visitors', ripples the water. The waterline at the bottom of the hero rocks with it, and foam fizzes where the sea meets the page.
 
-Around the sea:
+**Creatures.** The shaded creatures (the dolphin, the pufferfish and the anglerfish) are generated, not hand-typed: [`scripts/gen-ascii-creatures.mjs`](scripts/gen-ascii-creatures.mjs) describes each one as a smooth shape and samples it into a density ramp, the same way the hero draws its sharks (dense back, pale belly, soft edges).
 
-- **Colour:** one teal ramp, deep teal at the surface fading through pale aqua to white, tuned so white text on it still passes contrast.
-- **Buttons:** glass pills, white glass on the sea and teal glass on white, that grow slightly on hover. Nav links roll on hover.
-- **About:** a fact grid with hairlines only between cells, no boxes. Each cell has a depth reading (−08 m … −40 m, deeper as you go) and a small looping ASCII scene: a shark, rising bubbles, a fish school, a jellyfish, kelp with a sonar ping. Scenes only animate while on screen.
-- **Small touches:** `><>` fish drifting above section labels, bubble bullets, and a bubble logomark beside the name (also the favicon).
-- **Performance:** the canvas runs at no more than 30 fps, pauses off-screen or in a hidden tab, and shows one still frame under `prefers-reduced-motion`. Phones get one shark and coarser cells. The CSS gradient paints first, so the canvas never delays the first paint.
-- **Accessibility:** a skip link, visible focus rings, keyboard access everywhere, reduced-motion fallbacks (the sea, card scenes, drifting fish and button motion all hold still), and a mask that keeps glyphs out from behind text. All ASCII art is decorative and hidden from screen readers.
+- **About:** a bento of tinted tiles, each with its own creature and colour, and chips tinted from their tile. The Technical skills tile has a **dolphin** that leaps out of a drifting waterline, arcs over and dives back (one drawing, moved and tilted by CSS and clipped at the water). The Manchester tile shows the **live UK time** with a guess at what I'm doing, and a twinkling ASCII sun or moon by the hour.
+- **Projects:** a **pufferfish** on its own small live sea (caustics, bubbles, fish, and everyone's cursor ripples). It puffs up on hover, or on tap or keypress, with its shading thinning as it inflates, and releases a burst of bubbles. A faint **whale** crosses behind the section once per visit.
+- **Guestbook:** an **anglerfish** with a glowing lure in the midnight zone.
+- **Contact:** the **seabed**: sand ripples, swaying kelp and a crab that scuttles now and then.
+
+**Night dive (dark mode).** A moonlit hero with a moon instead of sun rays, navy fading to black in the zones, and creatures that glow (the sharks turn bioluminescent cyan). The theme follows the OS until a visitor picks one, then remembers it. An inline script sets it before the first paint, so it never flashes. The switch is an **ASCII dissolve** (~550 ms): glyphs flood the screen, the theme swaps under full cover, and they drain away. The guestbook canvas stays light in both themes, so everyone sees the same drawing.
+
+**Colour and contrast.** Colour comes from the environment (the deepening zones) and from the creatures; text stays neutral. Every pair the design relies on, text and art against every zone and tile in both themes, is checked by [`scripts/check-contrast.mjs`](scripts/check-contrast.mjs).
+
+**Small touches:** glass pills that grow slightly on hover, nav links that roll, `><>` fish drifting above section labels, and a bubble logomark beside the name (also the favicon).
+
+**Performance:**
+
+- The sea canvases run at no more than 30 fps, pause off screen or in a hidden tab, and show one still frame under `prefers-reduced-motion`. Phones get one shark and coarser cells.
+- **Adaptive quality:** each sea canvas measures its own frame time. If it stays over budget, it first drops its glow pass, then uses coarser cells (never stepping back up, so it doesn't flicker). On a 4× CPU-throttled profile this halved the hero's frame time (about 40 ms → 18 ms) and cut long tasks while scrolling from 85 to 2. Unthrottled, it holds 60 fps everywhere at full quality.
+- The dissolve is prepared on idle (canvas, colours and glyph atlases), redraws only the cells that change, and swaps the theme under full cover with transitions paused, so no frames drop.
+- The dolphin, waterline, whale, anglerfish and seabed are CSS animations of transforms and opacity, paused off screen.
+- The CSS gradients paint first, so the canvas never delays the first paint.
+
+**Accessibility:** a skip link, visible focus rings, keyboard access everywhere (including the pufferfish), reduced-motion fallbacks for every animation, and a mask that keeps glyphs out from behind text. All ASCII art and the depth gauge are decorative and hidden from screen readers.
 
 ## Challenges & what I learned
 
@@ -150,3 +189,6 @@ Around the sea:
 - **Reconnects.** WebSockets drop. The client retries with exponential backoff (1 s to 30 s, full jitter), hides all multiplayer UI while offline so the page is just a portfolio, and on reconnect re-announces itself and refetches the guestbook in case it missed a pixel.
 - **New-account limits.** Load testing hit a Lambda concurrency limit of 10 (the default for new AWS accounts) and API Gateway answered 429. Reads now retry with jittered backoff, and painting undoes its optimistic pixel if the server refuses it.
 - **Moderating anonymous input.** Rate limits at API Gateway, length and range caps in the validator and Lambdas, an ink budget on the guestbook, and a client flood guard.
+- **Contrast on tinted water.** Feedback said the contrast wasn't enough. Checking text only against white hid the problem, because most of the page now sits on tinted zones. A script that checks every pair against every zone, in both themes, caught failures that looked fine by eye (for example, small white text on the lighter top of the Contact panel was 3.95:1).
+- **A smooth theme switch.** The first dissolve stuttered: it redrew about 20,000 cells every frame, and the whole page restyled in one frame while the screen was only just covered. Preparing everything on idle, redrawing only changed cells, and holding full cover for two frames around the swap removed every dropped frame.
+- **Slow laptops.** Profiling with the CPU throttled showed the hero canvas missing frames. Rather than lowering quality for everyone, each canvas now steps its own quality down only when it measures that it can't keep up.

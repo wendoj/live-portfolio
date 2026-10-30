@@ -2,16 +2,20 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* shadcn components ship `dark:` classes; the site is light-only, so this
-   variant never matches. Keeping it lets those classes compile. */
-@custom-variant dark (&:is(.dark *));
+/* Night dive: <html class="dark"> (set before paint, see layout.tsx). A
+   `.light` element re-declares the light tokens, so a subtree (the guestbook
+   card) can stay lit inside the dark theme. */
+@custom-variant dark (&:is(.dark *):not(:is(.light *)));
 
 /*
- * "Shallows" design system. White pages, with sunlit-sea surfaces (hero +
- * contact) where people meet. shadcn's variables are remapped onto these
- * tokens so every component inherits the system.
+ * "Shallows" design system. The page is a dive: sunlit sea at the hero,
+ * then each section is a deeper zone (--zone-0 … --zone-4) down to the
+ * seabed at Contact. shadcn's variables are remapped onto these tokens so
+ * every component inherits the system.
  */
-:root {
+:root,
+.light {
+  color-scheme: light;
   --radius: 0.875rem;
 
   --background: oklch(1 0 0);
@@ -26,19 +30,19 @@
   --secondary-foreground: var(--foreground);
   --muted: oklch(0.972 0.005 265);
   /* Solid grey that still passes 4.5:1 on white and on --muted. */
-  --muted-foreground: oklch(0.49 0.012 265);
+  --muted-foreground: oklch(0.45 0.02 250);
   --accent: oklch(0.955 0.025 210);
   --accent-foreground: var(--foreground);
   --destructive: oklch(0.58 0.22 27);
   --border: oklch(0.18 0.012 265 / 0.08);
   --input: oklch(0.18 0.012 265 / 0.14);
-  --ring: var(--sea);
+  --ring: var(--sea-deep);
 
-  /* Two-tone statement text. --ink-soft is solid (not 40% alpha) so it still
-     reaches 3:1 for the large text it is used on; small informational text
-     uses --muted-foreground instead. */
-  --ink-strong: oklch(0.26 0.012 265);
-  --ink-soft: oklch(0.6 0.012 265);
+  /* Two-tone statement text. --ink-soft is solid (not 40% alpha) and still
+     reaches 4.5:1 on the deepest light zone; small informational text uses
+     --muted-foreground instead. */
+  --ink-strong: oklch(0.24 0.02 255);
+  --ink-soft: oklch(0.45 0.03 245);
 
   /* Sunlit lagoon: DayDream's sky ramp turned teal. --sea-deep and --sea
      are as light as they can be while white text on them still passes
@@ -49,12 +53,65 @@
   --sea-light: oklch(0.91 0.06 200);
   --seafoam: oklch(0.96 0.03 190);
   /* Ink for text on white in the sea's colour (AA on white). */
-  --sea-ink: oklch(0.47 0.09 210);
+  --sea-ink: oklch(0.44 0.09 212);
   /* Glass pill label on the sea: DayDream's #41beff turned teal, deepened
      until it reaches 3:1 on the pill's white glass. */
   --pill-ink: oklch(0.55 0.12 210);
   /* Warm accent, used sparingly. */
   --sand: oklch(0.9 0.06 75);
+
+  /* The hero / Contact sea ramp (see .sea). By day it is the sea itself. */
+  --ramp-0: var(--sea-deep);
+  --ramp-1: var(--sea);
+  --ramp-2: var(--sea-mid);
+  --ramp-3: var(--sea-light);
+  --ray: oklch(1 0 0 / 0.32);
+  --ray-mid: oklch(1 0 0 / 0.08);
+  --hero-glow: oklch(1 0 0 / 0.22);
+
+  /* Depth zones, top to bottom: sunlit shallows (top of About) → twilight →
+     midnight → seabed. By day they stay tints, so dark text holds everywhere. */
+  --zone-0: oklch(0.985 0.012 205);
+  --zone-1: oklch(0.962 0.026 208);
+  --zone-2: oklch(0.925 0.045 220);
+  --zone-3: oklch(0.885 0.06 232);
+  --zone-4: oklch(0.85 0.065 240);
+
+  /* Creatures carry the colour; each tile is a faint tint of its creature.
+     Inks reach 3:1 on their tile. */
+  --dolphin: oklch(0.48 0.13 245);
+  --sand-coral: oklch(0.55 0.14 45);
+  --puffer: oklch(0.6 0.14 65);
+  /* The pufferfish on its live sea (Projects): sunny yellow on teal. */
+  --puffer-on-sea: oklch(0.93 0.15 98);
+  /* The pufferfish's sea (Projects): deeper than the hero's by day, so the
+     yellow fish reaches 4.5:1 everywhere on it. */
+  --puffer-sea-top: oklch(0.45 0.095 220);
+  --puffer-sea-bottom: oklch(0.37 0.085 232);
+  /* Text and glyphs that sit on the sea (hero, Contact panel). */
+  --on-sea: oklch(1 0 0);
+  /* Top of the Contact panel: a touch deeper than the hero's --ramp-1, so
+     small white text there (the sounding line's readout) reaches 4.5:1. */
+  --panel-top: oklch(0.535 0.12 212);
+  --jelly: oklch(0.54 0.18 300);
+  --kelp: oklch(0.52 0.12 155);
+  --reef: oklch(0.52 0.11 215);
+  --lure: oklch(0.54 0.12 200);
+  --tile-dolphin: oklch(0.95 0.035 245);
+  --tile-sand-coral: oklch(0.958 0.03 60);
+  --tile-puffer: oklch(0.96 0.04 85);
+  --tile-jelly: oklch(0.955 0.03 300);
+  --tile-kelp: oklch(0.955 0.03 155);
+  --tile-reef: oklch(0.955 0.03 210);
+  --tile-edge: oklch(0 0 0 / 0.06);
+  /* Chips inside a tile: a stronger tint of the tile's own hue. */
+  --chip-dolphin: oklch(0.91 0.055 245);
+  --chip-sand-coral: oklch(0.915 0.05 55);
+  --chip-puffer: oklch(0.92 0.065 85);
+  --chip-jelly: oklch(0.91 0.05 300);
+  --chip-kelp: oklch(0.91 0.05 158);
+  --chip-reef: oklch(0.91 0.05 212);
+  --art-glow: transparent;
 
   /* Guestbook palette (ids 1–7, see src/lib/guestbook.ts) */
   --px-1: oklch(0.22 0.012 265);
@@ -73,6 +130,85 @@
     inset 0 1px 0 var(--glass-edge),
     0 0 0 1px oklch(0.18 0.012 265 / 0.06),
     0 8px 24px -10px oklch(0.4 0.09 210 / 0.25);
+}
+
+/* Night dive: a moonlit surface, then navy down to near-black. Creatures
+   glow (bioluminescence). */
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.15 0.04 256);
+  --foreground: oklch(0.95 0.01 240);
+  --card: oklch(0.2 0.04 255);
+  --popover: oklch(0.2 0.04 255);
+  --primary: oklch(0.95 0.01 240);
+  --primary-foreground: oklch(0.15 0.04 256);
+  --secondary: oklch(0.25 0.04 255);
+  --muted: oklch(0.24 0.04 255);
+  --muted-foreground: oklch(0.76 0.03 240);
+  --accent: oklch(0.27 0.05 240);
+  --border: oklch(1 0 0 / 0.1);
+  --input: oklch(1 0 0 / 0.16);
+
+  --ink-strong: oklch(0.95 0.01 240);
+  --ink-soft: oklch(0.72 0.035 235);
+
+  /* Accent teal, brighter by night so it reads on navy. */
+  --sea: oklch(0.74 0.11 200);
+  --sea-deep: oklch(0.62 0.11 210);
+  --sea-mid: oklch(0.5 0.08 220);
+  --sea-light: oklch(0.32 0.06 235);
+  --seafoam: oklch(0.28 0.05 225);
+  --sea-ink: oklch(0.8 0.1 200);
+  --pill-ink: oklch(0.32 0.08 240);
+
+  --ramp-0: oklch(0.31 0.065 250);
+  --ramp-1: oklch(0.26 0.06 252);
+  --ramp-2: oklch(0.235 0.058 253);
+  --ramp-3: oklch(0.22 0.056 254);
+  --ray: oklch(0.92 0.04 230 / 0.16);
+  --ray-mid: oklch(0.92 0.04 230 / 0.04);
+  --hero-glow: oklch(0.95 0.03 230 / 0.14);
+
+  --zone-0: oklch(0.21 0.055 254);
+  --zone-1: oklch(0.18 0.05 255);
+  --zone-2: oklch(0.15 0.042 256);
+  --zone-3: oklch(0.12 0.032 258);
+  --zone-4: oklch(0.095 0.022 260);
+
+  --dolphin: oklch(0.8 0.12 240);
+  --sand-coral: oklch(0.82 0.12 50);
+  --puffer: oklch(0.86 0.14 85);
+  --puffer-on-sea: oklch(0.9 0.15 92);
+  --panel-top: var(--zone-3);
+  --puffer-sea-top: var(--ramp-1);
+  --puffer-sea-bottom: var(--ramp-0);
+  --jelly: oklch(0.78 0.15 305);
+  --kelp: oklch(0.8 0.15 155);
+  --reef: oklch(0.8 0.1 210);
+  --lure: oklch(0.9 0.15 195);
+  --tile-dolphin: oklch(0.23 0.06 250);
+  --tile-sand-coral: oklch(0.24 0.04 50);
+  --tile-puffer: oklch(0.24 0.04 70);
+  --tile-jelly: oklch(0.23 0.05 300);
+  --tile-kelp: oklch(0.23 0.045 165);
+  --tile-reef: oklch(0.23 0.05 230);
+  --tile-edge: oklch(1 0 0 / 0.08);
+  --chip-dolphin: oklch(0.31 0.07 248);
+  --chip-sand-coral: oklch(0.32 0.055 50);
+  --chip-puffer: oklch(0.33 0.055 75);
+  --chip-jelly: oklch(0.31 0.065 300);
+  --chip-kelp: oklch(0.31 0.06 165);
+  --chip-reef: oklch(0.31 0.06 225);
+  --art-glow: currentColor;
+
+  --glass: oklch(0.22 0.045 255 / 0.72);
+  --glass-on-sea: oklch(1 0 0 / 0.1);
+  --glass-edge: oklch(1 0 0 / 0.1);
+  --glass-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 1px oklch(1 0 0 / 0.06),
+    0 8px 24px -10px oklch(0 0 0 / 0.6);
 }
 
 @theme inline {
@@ -103,6 +239,14 @@
   --color-sea-ink: var(--sea-ink);
   --color-seafoam: var(--seafoam);
   --color-sand: var(--sand);
+  --color-dolphin: var(--dolphin);
+  --color-sand-coral: var(--sand-coral);
+  --color-puffer: var(--puffer);
+  --color-puffer-on-sea: var(--puffer-on-sea);
+  --color-jelly: var(--jelly);
+  --color-kelp: var(--kelp);
+  --color-reef: var(--reef);
+  --color-lure: var(--lure);
 
   --font-sans: var(--font-aspekta), "Inter Tight", ui-sans-serif, system-ui,
     sans-serif;
@@ -185,12 +329,43 @@
   .sea {
     background: linear-gradient(
       180deg,
-      var(--sea-deep) 0%,
-      var(--sea) 48%,
-      var(--sea-mid) 64%,
-      var(--sea-light) 80%,
-      var(--background) 100%
+      var(--ramp-0) 0%,
+      var(--ramp-1) 48%,
+      var(--ramp-2) 64%,
+      var(--ramp-3) 80%,
+      var(--zone-0) 100%
     );
+  }
+
+  /* A depth zone: a full-width band whose colour runs from the zone above
+     into its own, so the page darkens continuously as you dive. */
+  .zone {
+    background: linear-gradient(180deg, var(--zone-from), var(--zone-to));
+  }
+
+  .zone-sunlight {
+    --zone-from: var(--zone-0);
+    --zone-to: var(--zone-1);
+  }
+
+  .zone-twilight {
+    --zone-from: var(--zone-1);
+    --zone-to: var(--zone-2);
+  }
+
+  .zone-midnight {
+    --zone-from: var(--zone-2);
+    --zone-to: var(--zone-3);
+  }
+
+  .zone-seabed {
+    --zone-from: var(--zone-3);
+    --zone-to: var(--zone-4);
+  }
+
+  /* ASCII creatures: by night they glow in their own colour. */
+  .ascii-art {
+    text-shadow: 0 0 12px color-mix(in oklch, var(--art-glow) 45%, transparent);
   }
 
   /*
@@ -205,13 +380,18 @@
     background-image: linear-gradient(
       180deg,
       oklch(1 0 0) 30%,
-      oklch(0.94 0.04 200) 100%
+      var(--glass-tint, oklch(0.94 0.04 200)) 100%
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    filter: drop-shadow(0 2px 18px oklch(0.4 0.1 215 / 0.55));
+    filter: drop-shadow(0 2px 18px var(--glass-shadow-ink, oklch(0.4 0.1 215 / 0.55)));
     font-weight: 600;
+  }
+
+  .dark .text-glass {
+    --glass-tint: oklch(0.86 0.05 230);
+    --glass-shadow-ink: oklch(0.7 0.08 230 / 0.35);
   }
 
   /* Frosted surface used by pills, the nav and the dock. A transparent border
@@ -430,4 +610,251 @@
   a:hover > .nav-roll > .nav-roll__stack {
     translate: 0 -50%;
   }
+}
+
+/*
+ * Zone life (see ZoneLife.tsx). Each group only animates while on screen:
+ * its wrapper carries data-playing.
+ */
+.zone-life:not([data-playing]) *,
+.zone-life:not([data-playing]) {
+  animation-play-state: paused !important;
+}
+
+/* The whale waits beyond the right edge, then crosses once. */
+@keyframes whale-cross {
+  from {
+    translate: 100cqw 0;
+  }
+  to {
+    translate: -100% 0;
+  }
+}
+
+.whale {
+  translate: 100cqw 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .whale[data-go] {
+    animation: whale-cross 28s linear forwards;
+  }
+}
+
+/* Under reduced motion it is simply there, off to the right. */
+@media (prefers-reduced-motion: reduce) {
+  .whale {
+    translate: 55cqw 0;
+  }
+}
+
+/* The anglerfish's lure: a steady glow by day, a beacon by night. */
+@keyframes lure-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.lure {
+  text-shadow:
+    0 0 6px currentColor,
+    0 0 16px currentColor;
+}
+
+.dark .lure {
+  text-shadow:
+    0 0 8px currentColor,
+    0 0 24px currentColor,
+    0 0 56px currentColor;
+}
+
+@keyframes angler-drift {
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lure {
+    animation: lure-pulse 3.2s ease-in-out infinite;
+  }
+
+  .angler {
+    animation: angler-drift 6s ease-in-out infinite;
+  }
+}
+
+/* The crab scuttles out along the seabed, pauses, and scuttles back. */
+@keyframes crab-walk {
+  0%,
+  12%,
+  100% {
+    translate: 0 0;
+  }
+  45%,
+  62% {
+    translate: min(14rem, 40vw) 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .crab {
+    animation: crab-walk 16s ease-in-out infinite;
+  }
+}
+
+/* The pufferfish: a gentle bob, and a small overshoot when it puffs. */
+.puffer {
+  transition: scale 260ms cubic-bezier(0.2, 0.8, 0.3, 1.5);
+}
+
+.puffer--full {
+  scale: 1.04;
+}
+
+@keyframes puffer-bob {
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .puffer {
+    animation: puffer-bob 3s ease-in-out infinite;
+  }
+}
+
+/* The sounding line drops in from above when the nav becomes a pill, and is
+   lifted out again over the hero. Opacity only under reduced motion. */
+.sounding-line {
+  transition:
+    opacity 300ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    translate 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.sounding-line--up {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sounding-line--up {
+    translate: 0 -24px;
+  }
+}
+
+/*
+ * The skills dolphin's leap: it rises out of the water, arcs over (level at
+ * the top) and dives back, then a pause underwater before the next one. The
+ * stage clips it at the waterline. Under reduced motion it holds at the top
+ * of the arc.
+ */
+@keyframes dolphin-leap {
+  0% {
+    translate: -16em 25em;
+    rotate: -26deg;
+  }
+  17% {
+    translate: -8.5em 8.5em;
+    rotate: -16deg;
+  }
+  34% {
+    translate: 0 1em;
+    rotate: 0deg;
+  }
+  51% {
+    translate: 8.5em 8.5em;
+    rotate: 16deg;
+  }
+  68%,
+  100% {
+    translate: 16em 25em;
+    rotate: 26deg;
+  }
+}
+
+/* The splashes where it leaves and re-enters the water. */
+@keyframes dolphin-splash-out {
+  0%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0;
+    translate: 0 -0.6em;
+  }
+}
+
+@keyframes dolphin-splash-in {
+  0%,
+  56%,
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  62% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0;
+    translate: 0 -0.6em;
+  }
+}
+
+.dolphin-splash {
+  opacity: 0;
+}
+
+/* The surface under the dolphin: two copies of the waves side by side,
+   slid by half their width so the loop is seamless. */
+@keyframes waves-drift {
+  to {
+    translate: -50% 0;
+  }
+}
+
+.dolphin-waves {
+  width: max-content;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dolphin {
+    animation: dolphin-leap 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .dolphin-splash--out {
+    animation: dolphin-splash-out 3.2s ease-out infinite;
+  }
+
+  .dolphin-splash--in {
+    animation: dolphin-splash-in 3.2s ease-out infinite;
+  }
+
+  .dolphin-waves {
+    animation: waves-drift 22s linear infinite;
+  }
+
+  .dolphin-waves--swell {
+    animation-duration: 34s;
+    animation-direction: reverse;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dolphin {
+    translate: 0 1em;
+  }
+}
+
+/* Set for the one frame the theme swaps under the dissolve's cover (see
+   ascii-dissolve.ts): no transitions start and nothing animates, so the
+   restyle is a single, hidden frame. */
+.theme-swapping *,
+.theme-swapping *::before,
+.theme-swapping *::after {
+  transition: none !important;
+  animation-play-state: paused !important;
 }

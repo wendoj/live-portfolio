@@ -2,11 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import { emitSeaBurst, onSeaBurst, seaCursors } from "@/lib/sea";
+import { getTheme, onThemeChange } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 const FPS = 30;
 const WAKE_DECAY = 0.94; // per frame: how fast a cursor's ripple settles
 const FRAME_BUDGET_MS = 6;
+// Adaptive quality: when the average draw time over 60 frames passes this,
+// the sea sheds work, one step at a time: first the bloom pass, then finer
+// cells. A step is never undone, so quality doesn't flicker.
+const DEGRADE_MS = 12;
 
 // Glyph rows in the atlas. Water and bubbles are light glyphs on the blue;
 // sharks and fish are "ink": dark glyphs, like shadows seen through shallow water.
@@ -14,13 +19,26 @@ const WATER = " .·:-~=+";
 const INK = " .:-=+*#%@<>";
 const INK_LEVELS = 10; // the shading ramp is INK[1..9]; "<" and ">" draw fish
 const BUBBLE = "·°oO~-";
-const ATLAS_ROWS = [
-  { chars: WATER, rgb: "255,255,255", alpha: (i: number) => 0.25 + (i / (WATER.length - 1)) * 0.65 },
-  { chars: INK, rgb: "8,45,80", alpha: (i: number) => (i < INK_LEVELS ? 0.35 + (i / (INK_LEVELS - 1)) * 0.65 : 0.9) },
-  { chars: BUBBLE, rgb: "255,255,255", alpha: () => 0.85 },
-  // Foam: the bubble glyphs in teal, for the pale band where the sea meets the white page.
-  { chars: BUBBLE, rgb: "56,150,182", alpha: () => 0.75 },
-] as const;
+// By night the water glyphs dim and cool, the bubbles glow, and the sharks
+// and fish turn bioluminescent cyan (and go through the bloom pass).
+const PALETTES = {
+  light: { water: "255,255,255", waterAlpha: [0.25, 0.9], ink: "8,45,80", inkAlpha: [0.35, 1], bubble: "255,255,255", foam: "56,150,182" },
+  dark: { water: "170,205,255", waterAlpha: [0.1, 0.42], ink: "110,225,235", inkAlpha: [0.25, 0.85], bubble: "200,235,255", foam: "110,175,215" },
+} as const;
+
+function atlasRows(theme: keyof typeof PALETTES) {
+  const p = PALETTES[theme];
+  const [lo, hi] = p.waterAlpha;
+  const [inkLo, inkHi] = p.inkAlpha;
+  return [
+    { chars: WATER, rgb: p.water, alpha: (i: number) => lo + (i / (WATER.length - 1)) * (hi - lo) },
+    { chars: INK, rgb: p.ink, alpha: (i: number) => (i < INK_LEVELS ? inkLo + (i / (INK_LEVELS - 1)) * (inkHi - inkLo) : inkHi * 0.9) },
+    { chars: BUBBLE, rgb: p.bubble, alpha: () => 0.85 },
+    // Foam: the bubble glyphs in teal, for the pale band where the sea meets the page.
+    { chars: BUBBLE, rgb: p.foam, alpha: () => 0.75 },
+  ];
+}
+const ATLAS_ROW_COUNT = 4;
 const ROW_WATER = 0;
 const ROW_INK = 1;
 const ROW_BUBBLE = 2;
@@ -231,6 +249,7 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
     let cellH = 11;
     let small = false;
     let bloom = false;
+    let quality = 2; // 2 full, 1 no bloom, 0 no bloom and coarser cells
     let visible = false;
     let frame = 0;
     let last = 0;
@@ -253,7 +272,11 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
     const glyphCtx = glyphs.getContext("2d")!;
     const bloomCanvas = document.createElement("canvas");
     const bloomCtx = bloomCanvas.getContext("2d")!;
-    const atlas = document.createElement("canvas");
+    // One atlas per theme, both built up front, so a theme change only
+    // switches which one is drawn from (no rebuild during the dissolve).
+    const atlases = { light: document.createElement("canvas"), dark: document.createElement("canvas") };
+    let atlas = atlases[getTheme()];
+    let night = getTheme() === "dark";
 
     let school: Shark[] = [];
     let fishes: Fish[] = [];
@@ -261,21 +284,25 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
     const trackers = new Map<string, { x: number; y: number; vx: number; vy: number; t: number; still: number }>();
 
     function buildAtlas(fontPx: number) {
-      const widest = Math.max(...ATLAS_ROWS.map((r) => r.chars.length));
-      atlas.width = Math.ceil(widest * cellW * dpr);
-      atlas.height = Math.ceil(ATLAS_ROWS.length * cellH * dpr);
-      const a = atlas.getContext("2d")!;
-      a.setTransform(dpr, 0, 0, dpr, 0, 0);
-      a.font = `${fontPx}px ${mono}`;
-      a.textAlign = "center";
-      a.textBaseline = "middle";
-      ATLAS_ROWS.forEach(({ chars, rgb, alpha }, row) => {
-        for (let i = 0; i < chars.length; i++) {
-          if (chars[i] === " ") continue;
-          a.fillStyle = `rgba(${rgb},${alpha(i)})`;
-          a.fillText(chars[i], i * cellW + cellW / 2, row * cellH + cellH / 2);
-        }
-      });
+      for (const theme of ["light", "dark"] as const) {
+        const target = atlases[theme];
+        const rows = atlasRows(theme);
+        const widest = Math.max(...rows.map((r) => r.chars.length));
+        target.width = Math.ceil(widest * cellW * dpr);
+        target.height = Math.ceil(ATLAS_ROW_COUNT * cellH * dpr);
+        const a = target.getContext("2d")!;
+        a.setTransform(dpr, 0, 0, dpr, 0, 0);
+        a.font = `${fontPx}px ${mono}`;
+        a.textAlign = "center";
+        a.textBaseline = "middle";
+        rows.forEach(({ chars, rgb, alpha }, row) => {
+          for (let i = 0; i < chars.length; i++) {
+            if (chars[i] === " ") continue;
+            a.fillStyle = `rgba(${rgb},${alpha(i)})`;
+            a.fillText(chars[i], i * cellW + cellW / 2, row * cellH + cellH / 2);
+          }
+        });
+      }
     }
 
     function populate() {
@@ -329,8 +356,8 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
       height = rect.height;
       waterH = Math.max(1, height - overlap);
       small = width < 640;
-      cellW = small ? 10 : 7;
-      cellH = small ? 15 : 11;
+      cellW = small ? 10 : quality === 0 ? 9 : 7;
+      cellH = small ? 15 : quality === 0 ? 14 : 11;
       cols = Math.ceil(width / cellW);
       rows = Math.ceil(height / cellH);
       const n = cols * rows;
@@ -338,7 +365,7 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
       inkLevel = new Uint8Array(n);
       inkAlpha = new Float32Array(n);
       touched = new Int32Array(n);
-      bloom = canBloom && !small;
+      bloom = canBloom && !small && quality === 2;
 
       for (const c of [canvas!, glyphs]) {
         c.width = Math.round(width * dpr);
@@ -744,6 +771,14 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
       const ch = cellH * dpr;
       const blit = (target: CanvasRenderingContext2D, row: number, index: number, col: number, r: number) =>
         target.drawImage(atlas, index * cw, row * ch, cw, ch, col * cellW, r * cellH, cellW, cellH);
+      const drawInk = (target: CanvasRenderingContext2D) => {
+        for (let k = 0; k < touchedCount; k++) {
+          const i = touched[k];
+          target.globalAlpha = inkAlpha[i];
+          blit(target, ROW_INK, inkLevel[i], i % cols, Math.floor(i / cols));
+        }
+        target.globalAlpha = 1;
+      };
 
       // Caustics: a slowly shifting web of light, strongest near the top
       // where the sunlight comes in, and broken into patches by a coarse noise.
@@ -808,6 +843,9 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
         }
       }
 
+      // By night the sharks and fish glow, so they join the bloomed layer.
+      if (night && bloom) drawInk(glyphCtx);
+
       if (bloom) {
         // A blurred quarter-resolution copy of the light glyphs makes them glow.
         bloomCtx.clearRect(0, 0, bloomCanvas.width, bloomCanvas.height);
@@ -820,13 +858,8 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
         ctx!.drawImage(glyphs, 0, 0, width, height);
       }
 
-      // Sharks and fish on top, unbloomed: crisp shadows in the water.
-      for (let k = 0; k < touchedCount; k++) {
-        const i = touched[k];
-        ctx!.globalAlpha = inkAlpha[i];
-        blit(ctx!, ROW_INK, inkLevel[i], i % cols, Math.floor(i / cols));
-      }
-      ctx!.globalAlpha = 1;
+      // By day, sharks and fish go on top, unbloomed: crisp shadows in the water.
+      if (!(night && bloom)) drawInk(ctx!);
 
       frameTotal += performance.now() - begin;
       if (++frameCount === 60) {
@@ -837,6 +870,13 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
         }
         frameCount = 0;
         frameTotal = 0;
+        if (avg > DEGRADE_MS && quality > 0) {
+          quality--;
+          canvas!.dataset.quality = String(quality);
+          // Coarser cells need new buffers and a new atlas; bloom just turns off.
+          if (quality === 0) resize();
+          else bloom = false;
+        }
       }
     }
 
@@ -913,6 +953,12 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
     visibility.observe(canvas);
 
     const offBurst = onSeaBurst(burst);
+    // Recolour for the new theme; sync() redraws the still frame under reduced motion.
+    const offTheme = onThemeChange(() => {
+      night = getTheme() === "dark";
+      atlas = atlases[getTheme()];
+      sync();
+    });
     document.addEventListener("visibilitychange", sync);
     reducedMotion.addEventListener("change", sync);
     window.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -924,6 +970,7 @@ export function AsciiSea({ className, sharks = 3, fish = 12, surface = false, ov
       resizeObserver.disconnect();
       visibility.disconnect();
       offBurst();
+      offTheme();
       document.removeEventListener("visibilitychange", sync);
       reducedMotion.removeEventListener("change", sync);
       window.removeEventListener("pointermove", onPointerMove);

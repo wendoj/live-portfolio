@@ -32,6 +32,26 @@ export const hero = {
 } as const;
 
 /**
+ * The dive. Each section is a real ocean zone; scrolling through a section
+ * descends from `from` to `to` metres (the sounding line interpolates). The
+ * order is the page order.
+ */
+export type ZoneId = "surface" | "about" | "projects" | "guestbook" | "contact";
+
+export const zones = [
+  { id: "surface", section: "top", name: "Surface", from: 0, to: 0 },
+  { id: "about", section: "about", name: "Sunlight zone", from: 0, to: 200 },
+  { id: "projects", section: "projects", name: "Twilight zone", from: 200, to: 1000 },
+  { id: "guestbook", section: "guestbook", name: "Midnight zone", from: 1000, to: 4000 },
+  { id: "contact", section: "contact", name: "Seabed", from: 4000, to: 4200 },
+] as const satisfies readonly { id: ZoneId; section: string; name: string; from: number; to: number }[];
+
+/** "−2,400 m". The minus is U+2212, so it lines up with the digits. */
+export function formatDepth(m: number) {
+  return m === 0 ? "0 m" : `−${Math.round(m).toLocaleString("en-GB")} m`;
+}
+
+/**
  * The About statement is a sequence of text runs. `select: true` wraps a run
  * in the Figma-style selection box that a visitor's cursor "holds".
  */
@@ -74,6 +94,22 @@ export const about = {
   buildingSince: "2021",
 } as const;
 
+/**
+ * What Wendy is probably doing, by UK time. The first matching rule wins.
+ * `days`: 0 = Sunday … 6 = Saturday; hours are [from, to).
+ */
+export const manchester = {
+  timeZone: "Europe/London",
+  label: "Manchester",
+  rules: [
+    { from: 0, to: 7, status: "asleep (probably)" },
+    { days: [1, 2, 3, 4, 5], from: 9, to: 17, status: "in a lecture or a lab" },
+    { days: [0, 6], from: 9, to: 19, status: "at a hackathon?" },
+    { from: 17, to: 24, status: "on side projects" },
+  ] as readonly { days?: readonly number[]; from: number; to: number; status: string }[],
+  fallback: "awake, somewhere",
+} as const;
+
 export const prodpod = {
   name: "Prodpod",
   tags: ["Real-time", "Web app"],
@@ -89,6 +125,7 @@ export const prodpod = {
 
 export const thisSite = {
   name: "This portfolio",
+  puffLabel: "Puff up the pufferfish",
   tags: ["AWS", "Multiplayer"],
   summary:
     "Live cursors and a shared pixel guestbook.",

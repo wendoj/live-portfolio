@@ -23,10 +23,10 @@ export function Hero() {
     >
       <SeaDecor />
 
-      {/* The sea lands on the page: a long fade into white at the bottom. */}
+      {/* The sea lands on the page: a long fade into the sunlight zone below. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-b from-transparent to-background"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-b from-transparent to-(--zone-0)"
       />
 
       {/*

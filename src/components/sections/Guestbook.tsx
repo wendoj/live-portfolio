@@ -2,6 +2,7 @@ import { GuestbookLive } from "@/components/guestbook/GuestbookLive";
 import { PalettePicker } from "@/components/guestbook/PalettePicker";
 import { CanvasPixels } from "@/components/guestbook/StaticCanvas";
 import { SectionIntro } from "@/components/layout/SectionIntro";
+import { Anglerfish } from "@/components/sea/ZoneLife";
 import { guestbook } from "@/lib/content";
 import { GRID_SIZE, SEED_ART } from "@/lib/guestbook";
 
@@ -11,7 +12,7 @@ export function Guestbook() {
       id="guestbook"
       data-section="guestbook"
       aria-labelledby="guestbook-title"
-      className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32"
+      className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32"
     >
       <SectionIntro
         index={3}
@@ -21,11 +22,17 @@ export function Guestbook() {
         soft={guestbook.title.soft}
       />
 
-      <div className="mx-auto mt-14 max-w-xl" data-reveal>
-        {/* Outer radius 29px = inner canvas radius 16px + 12px padding + 1px border. */}
+      {/* The anglerfish of the midnight zone: above the canvas on small
+          screens, beside it from lg. */}
+      <Anglerfish className="mt-12 flex justify-center lg:absolute lg:top-[52%] lg:left-[max(1rem,calc(50%-34rem))] lg:mt-0" />
+
+      <div className="relative mx-auto mt-10 max-w-xl lg:mt-14" data-reveal>
+        {/* Outer radius 29px = inner canvas radius 16px + 12px padding + 1px border.
+            .light: the card stays a lit specimen card by night, so everyone
+            sees the same drawing in the same colours; only its glow changes. */}
         <div
           data-anchor="guestbook-canvas"
-          className="rounded-[29px] border border-transparent bg-card p-3 shadow-[0_0_0_1px_oklch(0.18_0.012_265/0.06),0_24px_48px_-24px_oklch(0.4_0.1_230/0.3)]"
+          className="light rounded-[29px] border border-transparent bg-card p-3 text-foreground shadow-[0_0_0_1px_oklch(0.18_0.012_265/0.06),0_24px_48px_-24px_oklch(0.4_0.1_230/0.3)] [.dark_&]:shadow-[0_0_0_1px_oklch(1_0_0/0.1),0_0_48px_oklch(0.85_0.1_200/0.16),0_24px_48px_-24px_oklch(0_0_0/0.6)]"
         >
           {/* The seed art, server-rendered; the live canvas takes over near the viewport. */}
           <GuestbookLive>

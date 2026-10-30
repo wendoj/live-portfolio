@@ -6,6 +6,7 @@ import { RevealObserver } from "@/components/layout/RevealObserver";
 import { MultiplayerOverlays } from "@/components/multiplayer/MultiplayerOverlays";
 import { MultiplayerProvider } from "@/components/multiplayer/MultiplayerProvider";
 import { site } from "@/lib/content";
+import { THEME_COLOR, THEME_SCRIPT } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -29,13 +30,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#00738d",
-  colorScheme: "light",
+  // The OS preference picks one before any script runs; applyTheme() then
+  // keeps both in step with the visitor's choice.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GB" className={cn(aspekta.variable, geistMono.variable)}>
+    // suppressHydrationWarning: THEME_SCRIPT may add "dark" to the class
+    // before React hydrates.
+    <html lang="en-GB" className={cn(aspekta.variable, geistMono.variable)} suppressHydrationWarning>
+      <head>
+        {/* Sets the theme before first paint, so it never flashes. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-dvh">
         <a
           href="#main"

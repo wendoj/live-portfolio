@@ -54,11 +54,11 @@ const buttonVariants = cva(
           "bg-[linear-gradient(180deg,oklch(1_0_0/0.96),oklch(1_0_0/0.6))] text-(--pill-ink) shadow-[inset_0_4px_6px_oklch(1_0_0/0.27),inset_0_1px_0_oklch(1_0_0/0.19),inset_0_22px_18px_oklch(1_0_0/0.3),0_3px_4px_oklch(0.3_0.08_215/0.12),0_17px_18px_-6px_oklch(0.3_0.08_215/0.1),0_60px_60px_-30px_oklch(0.3_0.08_215/0.3)] hover:bg-white/30",
       },
       {
-        // Teal glass on white.
+        // Teal glass on white; deep teal glass by night.
         variant: "primary",
         surface: "light",
         className:
-          "bg-[linear-gradient(180deg,oklch(0.9_0.07_200/0.75),oklch(0.8_0.1_205/0.55))] text-[oklch(0.4_0.08_212)] backdrop-saturate-[1.4] shadow-[inset_0_1px_0_oklch(1_0_0/0.8),inset_0_8px_12px_oklch(1_0_0/0.3),0_3px_4px_oklch(0.3_0.08_215/0.1),0_14px_18px_-8px_oklch(0.3_0.08_215/0.18)] hover:bg-white/25",
+          "bg-[linear-gradient(180deg,oklch(0.9_0.07_200/0.75),oklch(0.8_0.1_205/0.55))] text-[oklch(0.4_0.08_212)] backdrop-saturate-[1.4] shadow-[inset_0_1px_0_oklch(1_0_0/0.8),inset_0_8px_12px_oklch(1_0_0/0.3),0_3px_4px_oklch(0.3_0.08_215/0.1),0_14px_18px_-8px_oklch(0.3_0.08_215/0.18)] hover:bg-white/25 dark:bg-[linear-gradient(180deg,oklch(0.45_0.08_210/0.75),oklch(0.34_0.07_220/0.6))] dark:text-[oklch(0.94_0.04_200)] dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.18),inset_0_8px_12px_oklch(1_0_0/0.06),0_14px_18px_-8px_oklch(0_0_0/0.5)] dark:hover:bg-white/10",
       },
     ],
     defaultVariants: {

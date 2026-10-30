@@ -1,6 +1,7 @@
 import { MailIcon } from "lucide-react";
 import { AsciiSea } from "@/components/sea/AsciiSea";
 import { SeaDecor } from "@/components/sea/SeaDecor";
+import { Seabed } from "@/components/sea/ZoneLife";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { contact } from "@/lib/content";
@@ -34,8 +35,9 @@ export function Contact() {
     >
       <div
         data-anchor="contact-panel"
-        className="relative isolate mx-auto flex min-h-[560px] max-w-[88rem] flex-col items-center justify-center overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,var(--sea-deep)_0%,var(--sea)_45%,var(--sea-mid)_100%)] px-5 py-24 text-center sm:rounded-[36px]">
-        <SeaDecor />
+        className="relative isolate mx-auto flex min-h-[560px] max-w-[88rem] flex-col items-center justify-center overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,var(--panel-top)_0%,var(--ramp-0)_55%,var(--ramp-0)_100%)] px-5 py-24 text-center sm:rounded-[36px] dark:bg-[linear-gradient(180deg,var(--zone-3),oklch(0.16_0.05_240))] dark:shadow-[0_0_0_1px_oklch(0.8_0.1_200/0.14),0_0_80px_-10px_oklch(0.75_0.12_195/0.25)]">
+        <SeaDecor moon={false} />
+        <Seabed className="z-[5]" />
         <AsciiSea
           sharks={1}
           fish={9}

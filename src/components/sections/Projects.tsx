@@ -1,17 +1,18 @@
 import { ArrowUpRightIcon } from "lucide-react";
 import { SectionIntro } from "@/components/layout/SectionIntro";
+import { Pufferfish } from "@/components/projects/Pufferfish";
 import { VideoMedia } from "@/components/projects/VideoMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { earlierWork, prodpod, thisSite } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
-/** Rounded media tile with a 1px inset outline in pure black at 10%. */
+/** Rounded media tile with a 1px inset outline: black at 10% by day, white at 10% by night. */
 function MediaFrame({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[22px] bg-muted after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_oklch(0_0_0/0.1)]",
+        "relative overflow-hidden rounded-[22px] bg-muted after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_oklch(0_0_0/0.1)] dark:after:shadow-[inset_0_0_0_1px_oklch(1_0_0/0.1)]",
         className,
       )}
     >
@@ -42,40 +43,6 @@ function ProdpodPlaceholder() {
   );
 }
 
-/**
- * A small schematic of this page with visitor dots on it (illustrative
- * positions, not live ones).
- */
-function MiniMap() {
-  const dots = [
-    { top: "14%", left: "38%", color: "oklch(0.56 0.11 192)" },
-    { top: "44%", left: "62%", color: "oklch(0.6 0.17 160)" },
-    { top: "71%", left: "30%", color: "oklch(0.58 0.2 300)" },
-  ];
-  return (
-    <div className="flex size-full items-center justify-center bg-gradient-to-tl from-sea-light to-sea p-8">
-      <div className="relative h-full w-1/2 max-w-48 overflow-hidden rounded-xl bg-white/90 p-3 shadow-xl">
-        <div className="h-[22%] rounded-[8px] bg-sea" />
-        {[0.7, 0.5, 0.85, 0.6, 0.75].map((w, i) => (
-          <div key={i} className="mt-2.5 h-2 rounded-full bg-foreground/10" style={{ width: `${w * 100}%` }} />
-        ))}
-        <div className="mt-3 grid grid-cols-2 gap-1.5">
-          <div className="h-8 rounded-md bg-foreground/[0.06]" />
-          <div className="h-8 rounded-md bg-foreground/[0.06]" />
-        </div>
-        {dots.map((d, i) => (
-          <span
-            key={i}
-            aria-hidden
-            className="absolute size-2.5 rounded-full ring-2 ring-white"
-            style={{ top: d.top, left: d.left, backgroundColor: d.color }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <Button asChild variant="primary">
@@ -94,7 +61,8 @@ export function Projects() {
       id="projects"
       data-section="projects"
       aria-labelledby="projects-title"
-      className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32"
+      // relative: paints above the whale passing behind it (see WhalePass).
+      className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32"
     >
       <SectionIntro
         index={2}
@@ -151,7 +119,7 @@ export function Projects() {
         <div data-reveal>
           <div>
             <MediaFrame className="aspect-[4/3]">
-              <MiniMap />
+              <Pufferfish />
             </MediaFrame>
             <Caption name={thisSite.name} tags={thisSite.tags} />
           </div>
