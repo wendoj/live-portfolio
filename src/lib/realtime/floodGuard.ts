@@ -1,11 +1,18 @@
 /**
- * Ignores any visitor id that sends more than `limit` events in one second,
- * for `banMs`. The API key is public, so a script could flood the channel;
- * with the onPublish validator in front, the worst it can do is inflate the
- * count, never break the page.
+ * Ignores any visitor id that floods the room, for `banMs`. The API key is
+ * public, so a script could flood the channel; with the onPublish validator
+ * in front, the worst it can do is inflate the count, never break the page.
+ *
+ * A token bucket per id: it holds up to `burst` events and refills at `rate`
+ * per second. Counting by arrival time alone (at most N in any one second)
+ * banned honest visitors: when this tab stalls for a moment (a busy main
+ * thread, a background tab resuming), the WebSocket's buffered messages
+ * arrive in one burst. A normal visitor sends at most ~20 cursor events a
+ * second, so a few seconds of backlog fits in the bucket, while a sustained
+ * flood above `rate` empties it within seconds and is banned.
  */
-export function createFloodGuard(limit = 30, banMs = 60_000) {
-  const windows = new Map<string, { start: number; count: number }>();
+export function createFloodGuard(rate = 30, burst = 120, banMs = 60_000) {
+  const buckets = new Map<string, { tokens: number; at: number }>();
   const bannedUntil = new Map<string, number>();
 
   return function allow(id: string, now = performance.now()) {
@@ -15,22 +22,24 @@ export function createFloodGuard(limit = 30, banMs = 60_000) {
       bannedUntil.delete(id);
     }
 
-    const w = windows.get(id);
-    if (!w || now - w.start >= 1000) {
-      windows.set(id, { start: now, count: 1 });
-      // Random ids would otherwise grow the map forever; drop stale windows.
-      if (windows.size > 500) {
-        for (const [key, value] of windows) if (now - value.start >= 1000) windows.delete(key);
+    const b = buckets.get(id);
+    if (!b) {
+      buckets.set(id, { tokens: burst - 1, at: now });
+      // Random ids would otherwise grow the map forever; drop idle (full) buckets.
+      if (buckets.size > 500) {
+        for (const [key, value] of buckets) if ((now - value.at) * (rate / 1000) >= burst) buckets.delete(key);
       }
       return true;
     }
 
-    w.count += 1;
-    if (w.count > limit) {
+    b.tokens = Math.min(burst, b.tokens + ((now - b.at) * rate) / 1000);
+    b.at = now;
+    if (b.tokens < 1) {
       bannedUntil.set(id, now + banMs);
-      windows.delete(id);
+      buckets.delete(id);
       return false;
     }
+    b.tokens -= 1;
     return true;
   };
 }
