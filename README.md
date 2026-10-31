@@ -4,18 +4,18 @@ My portfolio, built for the AWS Student Builder Challenge: Build Your Tech Super
 
 The page is multiplayer: you can see the other people reading it, and leave a mark that everyone sees.
 
+[Demo](https://github.com/user-attachments/assets/f4eecf2d-5e85-4512-a89c-a4455a419450)
+
+[Link to portfolio](https://wendyji.com)
+
 ## The creative feature: "You're not alone here"
 
-| Feature | What it does |
-|---|---|
-| **Live cursors + presence** | Every visitor gets an anonymous name and colour ("Amber Eel") and a labelled cursor that lands on the same card on any screen size. Phone visitors appear as a pill that follows their scrolling. |
-| **Live count** | The hero badge reads "You + 2 swimming here", and the nav bubble rises while others are around. |
-| **Dock** | Everyone here as sea creatures (🦈 🐙 🐢), a "+N" list of the whole room, Invite (copy link), and two settings: **Go invisible** and **Hide others' cursors**. |
-| **Edge indicators** | People scrolled above or below you show as coloured pills at the screen edge; click one to jump to them. |
-| **Pixel guestbook** | A shared 32 × 32 canvas. Every pixel is confirmed by the server and appears live for everyone. Paintable by mouse, touch or keyboard, with a small ink budget. |
-| **The sea reacts** | Sharks and fish in the ASCII sea react to everyone's cursors, not just yours. So does the small sea behind the pufferfish in Projects. |
+A portfolio is usually a lonely page, so I made this one a room.
 
-**Why this feature?** A portfolio is usually a lonely page, so I made this one a room.
+- **Live cursors and presence:** every visitor gets an anonymous name ("Amber Eel") and a labelled cursor that lands on the same card on any screen size. The hero badge counts who's here ("You + 2 swimming here").
+- **Dock and edge pills:** everyone in the room as sea creatures, plus **Invite**, **Go invisible** and **Hide others' cursors**. People scrolled elsewhere show as pills at the screen edge; click one to jump to them.
+- **Pixel guestbook:** a shared 32 × 32 canvas. Every pixel is confirmed by the server and appears live for everyone.
+- **The sea reacts:** the ASCII sharks, fish and ripples respond to everyone's cursors, not just yours.
 
 ## Architecture
 
@@ -34,161 +34,64 @@ flowchart LR
   DO & AC -.-> CW[Amazon CloudWatch Logs]
 ```
 
-| AWS service | What it does here |
+| AWS service | Role |
 |---|---|
-| **AWS Amplify Hosting** | Builds every push to `main`, deploys the backend, and serves the static site from a CDN |
-| **AWS Amplify Gen 2** | Defines the whole backend in TypeScript ([`amplify/backend.ts`](amplify/backend.ts)) and deploys it with CDK |
-| **AWS AppSync Events** | WebSocket pub/sub. Namespace `room` carries visitors' cursors and presence through an `onPublish` validator; namespace `server` carries confirmed guestbook pixels and accepts **IAM publishes only** |
-| **Amazon API Gateway (HTTP API)** | `GET/POST /doodle`, with stage throttling (burst 20, 10 req/s) and CORS limited to the site |
-| **AWS Lambda** | Two small Node.js functions: paint a pixel and broadcast it, reset the guestbook |
-| **Amazon DynamoDB** | `Doodle` (one item; each pixel is an atomic `SET cells[i]`) |
-| **Amazon CloudWatch** | Lambda logs and API metrics |
-| **AWS Budgets** | A $5/month budget with email alerts at 50%, 80% and 100% of actual spend and 100% of forecast |
+| **Amplify Hosting + Gen 2** | Builds and deploys every push to `main`; the backend is defined in TypeScript ([`amplify/backend.ts`](amplify/backend.ts)) |
+| **AppSync Events** | WebSocket pub/sub: `room` (cursors, presence, through an `onPublish` validator) and `server` (confirmed pixels, **IAM publishes only**) |
+| **API Gateway (HTTP API)** | `GET/POST /doodle`, throttled (burst 20, 10 req/s), CORS limited to the site |
+| **Lambda** | Paint a pixel and broadcast it; reset the guestbook |
+| **DynamoDB** | One `Doodle` item; each pixel is an atomic `SET cells[i]` |
+| **CloudWatch, Budgets** | Logs and metrics; a $5/month budget with email alerts |
 
 ### Design decisions
 
-- **Clients can't fake a pixel.** A browser only *requests* a pixel (`POST /doodle`). The Lambda writes it to DynamoDB and then publishes the confirmed change, signed with its IAM role, to `/server/main`. An `onPublish` handler can't tell an API-key publish from an IAM one, so the split is made by auth mode on a namespace of its own: browsers can subscribe to `server` but get a **401** if they try to publish there (tested).
-- **Validation at the edge.** The `room` namespace's [`onPublish` handler](amplify/events/room-onPublish.js) (APPSYNC_JS) drops any event with an unknown type, coordinates outside 0..1, a malformed id, a colour outside the palette, or a payload over 1 KB. The client re-checks what it receives and ignores any visitor sending more than 30 events a second.
-- **HTTP API, not Lambda Function URLs.** One base URL, CORS in one place, and stage-level throttling, which Function URLs don't have. At this scale it costs next to nothing (the first million requests a month are free for 12 months, then $1 per million).
-- **Anchor-based coordinates.** A cursor is sent as "x/y inside this card" (`[data-anchor]`), not as pixels, so it lands on the same card on a phone and a widescreen even though the grid reflows.
-- **Only real people count.** A tab listens straight away but joins (and is counted) only after its first real input, which keeps crawlers, Lighthouse and untouched tabs out of the count.
-- **No admin endpoint.** Resetting the guestbook is a Lambda with no HTTP route, invoked with AWS credentials ([`scripts/clear-guestbook.mjs`](scripts/clear-guestbook.mjs)), so there is no admin token to leak.
-- **Privacy.** Visitors are anonymous, and cursors are relayed live but never stored.
+- **Clients can't fake a pixel.** The browser only requests a pixel; a Lambda writes it, then publishes the confirmed change with its IAM role. Browsers get a 401 if they try to publish to `server`.
+- **Validation at the edge.** The [`onPublish` handler](amplify/events/room-onPublish.js) drops unknown types, out-of-range coordinates, bad ids or colours, and payloads over 1 KB. The client also ignores any visitor who floods the room.
+- **Cursors are relative to cards** (`[data-anchor]`), not pixels, so they land on the same card on a phone and a widescreen.
+- **Only real people count.** A tab joins the room only after its first real input, which keeps crawlers and idle tabs out of the count.
+- **No admin endpoint.** The guestbook reset is a Lambda with no HTTP route, so there's no admin token to leak.
+- **Privacy.** Visitors are anonymous; cursors are relayed live and never stored.
 
 ## Tech stack
 
-- **Frontend:** Next.js 16 (App Router, static export) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Radix)
-- **Backend:** AWS Amplify Gen 2 · AppSync Events · API Gateway · Lambda (Node.js) · DynamoDB · region `eu-west-2` (London)
+- **Frontend:** Next.js 16 (static export), React 19, TypeScript, Tailwind CSS 4, shadcn/ui
+- **Backend:** AWS Amplify Gen 2, AppSync Events, API Gateway, Lambda (Node.js), DynamoDB, `eu-west-2` (London)
 
 ## Run it locally
 
-Requires Node.js 22 and AWS credentials for the Amplify sandbox.
+Requires Node.js 22 and AWS credentials.
 
 ```bash
 npm install
-npx ampx sandbox      # deploys a personal cloud backend and writes amplify_outputs.json
+npx ampx sandbox      # deploys a personal backend and writes amplify_outputs.json
 npm run dev           # http://localhost:3000
 ```
 
-Without the sandbox, the site still works as a normal static portfolio: the multiplayer layer stays hidden and the guestbook shows its starting drawing. (`npm run dev` and `npm run build` write a stub `amplify_outputs.json` when there isn't one.)
+Without the sandbox, the site works as a plain portfolio (no multiplayer). To test multiplayer, open two tabs; a tab joins on its first scroll, key press or mouse move.
 
-On Node 25, `ampx` crashes on Node's built-in `localStorage`; run it as `NODE_OPTIONS=--no-webstorage npx ampx sandbox`, or use Node 22 like the pipeline.
+**Scripts:** `npm run check:contrast` (WCAG check of every colour pair, both themes) · `node scripts/check-onpublish.mjs` (validator test) · `node scripts/clear-guestbook.mjs` (reset the guestbook) · `node scripts/gen-ascii-creatures.mjs` (regenerate the ASCII creatures).
 
-**Testing multiplayer:** open two desktop tabs, plus a phone on the same network at `http://<your-lan-ip>:3000`. A tab joins the room on its first scroll, key press or mouse move.
+## Deployment and cost
 
-**Scripts:**
-- `node scripts/check-onpublish.mjs` publishes good and bad events to the deployed room and checks that only the good ones get through.
-- `node scripts/clear-guestbook.mjs` resets the guestbook to its starting drawing for everyone.
-- `npm run check:contrast` checks every text and art colour pair against every depth zone, in both themes, and fails below WCAG targets (4.5:1 text, 3:1 art). Run it after changing a token in `globals.css`.
-- `node scripts/gen-ascii-creatures.mjs` regenerates the shaded ASCII creatures (dolphin, pufferfish, anglerfish) into `src/lib/ascii-creatures.generated.ts`. Edit the shapes in the script, not the generated file.
+Amplify Hosting deploys `main` through [`amplify.yml`](amplify.yml): the backend (`npx ampx pipeline-deploy`), then the static frontend (`npm run build`). Everything is serverless and pay-per-request, so it costs nothing while idle; throttling and the validator cap what abuse can cost.
 
-To check the production build: `npm run build` (writes the static site to `out/`).
+The browser's AppSync API key is public by design and expires after 365 days; every deploy extends it.
 
-### API key rotation
+## Design: "the dive"
 
-The browser uses a public AppSync API key (public by design: the `onPublish` validator and a client-side flood guard limit what it can do). AppSync caps API keys at **365 days**. The expiry is recomputed on every deploy, so each push to `main` extends it to a year from then. If the site goes a year without a deploy, redeploy (or extend the key in the AppSync console) and the key keeps working.
+Scrolling the page is a dive, from a sunlit lagoon to the seabed: Hero (surface), About (sunlight zone), Projects (twilight), Guestbook (midnight), Contact (seabed, ~4,200 m). A sounding line down the left edge shows the live depth.
 
-## Deployment
+- **The hero sea** ([AsciiSea.tsx](src/components/sea/AsciiSea.tsx)) is a canvas of ASCII caustics, sharks, fish and bubbles. The sharks are curious: they drift towards a cursor that holds still and dart from one that moves fast.
+- **Creatures** are generated from smooth shapes ([`gen-ascii-creatures.mjs`](scripts/gen-ascii-creatures.mjs)): a leaping dolphin in About, a pufferfish that puffs up on hover in Projects, an anglerfish in the Guestbook, and a seabed with kelp and a crab in Contact.
+- **Night dive:** a dark mode with glowing creatures. The switch is an ASCII dissolve, and an inline script sets the theme before first paint, so it never flashes.
+- **Performance:** the sea canvases cap at 30 fps, pause off screen, and lower their own quality only when they can't keep up. On a 4× throttled CPU this halved the hero's frame time; unthrottled, it holds 60 fps.
+- **Accessibility:** keyboard access everywhere, reduced-motion fallbacks for every animation, and decorative art hidden from screen readers.
 
-Amplify Hosting is connected to this repo's `main` branch. [`amplify.yml`](amplify.yml) runs two stages:
+## Challenges and what I learned
 
-1. **Backend:** `npx ampx pipeline-deploy` deploys `amplify/` and generates `amplify_outputs.json`.
-2. **Frontend:** `npm run build` creates the static export in `out/`.
-
-CORS on the HTTP API allows the branch's own `amplifyapp.com` domain (from the `AWS_APP_ID` and `AWS_BRANCH` the pipeline provides), `wendyji.com`, `www.wendyji.com` and `localhost:3000`; add other domains with the `EXTRA_ALLOWED_ORIGINS` environment variable (comma-separated). A personal sandbox allows any origin so phones on the LAN can test against it.
-
-## Cost
-
-Serverless only (no EC2, ECS or RDS), all pay-per-request: AppSync Events, API Gateway, Lambda and on-demand DynamoDB cost nothing while idle and fractions of a cent per visit. API Gateway throttling and the `onPublish` validator cap what abuse can cost. An AWS Budgets alarm ($5/month; alerts at 50%, 80%, 100% actual and 100% forecast) catches anything unexpected.
-
-## Project structure
-
-```
-amplify/
-  backend.ts            Events API, HTTP API, tables, IAM grants, CORS, outputs
-  events/               room-onPublish.js (APPSYNC_JS validator)
-  functions/            doodle, admin-clear
-  shared/               HTTP helpers, guestbook storage, IAM-signed publish
-src/app/                Next.js layout (pre-paint theme script), page (depth zones), global styles + tokens
-src/components/
-  sections/             Hero, About (bento), Projects, Guestbook, Contact
-  layout/               nav, footer, section intro, scroll-reveal observer
-  sea/                  AsciiSea (canvas), AsciiScene (frame player), ZoneLife (whale, anglerfish, seabed),
-                        FishSchool, SeaDecor (sun rays / moon)
-  depth/                SoundingLine (desktop depth gauge), NavDepth (compact readout)
-  theme/                ThemeToggle
-  about/                ManchesterClock
-  projects/             Pufferfish, VideoMedia
-  hero/                 InlineShark
-  multiplayer/          room provider, cursor layer, edge indicators, dock, live badge
-  guestbook/            live canvas, palette picker
-  ui/                   shadcn/ui components, restyled
-src/lib/realtime/       protocol types, connection + backoff, identity, anchors, presence, cursors
-src/lib/theme.ts        light / dark: pre-paint script, apply, follow the OS
-src/lib/ascii-dissolve.ts  the day/night ASCII dissolve
-src/lib/depth.ts        scroll → depth tracker (shared by the gauge and the nav readout)
-src/lib/ascii-scenes.ts small looping ASCII scenes; ascii-creatures.generated.ts holds the shaded creatures
-src/lib/api.ts          HTTP API client (retries on throttling)
-src/lib/content.ts      all copy in one place, including the depth zones
-src/lib/guestbook.ts    grid size, palette and seed art (shared with the Lambdas)
-scripts/                outputs stub, onPublish check, guestbook reset, contrast check, creature generator
-```
-
-## Design
-
-**"The dive":** scrolling the page is a dive, from a sunlit lagoon at the top to the seabed at the bottom. Everything in the water is ASCII characters, and much of it reacts to the people on the page.
-
-**Depth zones.** Each section is a real ocean zone, and the water deepens continuously as you scroll (each section is a full-width band whose colour runs from the zone above into its own):
-
-| Section | Zone | Depth |
-|---|---|---|
-| Hero | Surface | 0 m |
-| About | Sunlight zone | 0–200 m |
-| Projects | Twilight zone | 200–1,000 m |
-| Guestbook | Midnight zone | 1,000–4,000 m |
-| Contact | Seabed | ~4,200 m |
-
-**Sounding line.** On desktop, a plumb line made of `│` glyphs hangs down the left edge and pays out as you dive, with a sinker showing the live depth and zone. Knots mark where each deeper zone begins. It is hidden over the hero and drops in at the same moment the nav turns into a glass pill (they share one trigger), and it turns white over the teal Contact panel. On smaller screens the depth shows inside the nav pill. Scroll updates write straight to the DOM (a `clip-path` reveal and a `translate`), so a scroll frame does no layout.
-
-**The hero sea** ([AsciiSea.tsx](src/components/sea/AsciiSea.tsx), a canvas with no libraries; inspired by [ascii-sharks](https://github.com/stackedlol/ascii-sharks), with original code and art):
-
-- **Caustics:** a slowly shifting web of light on the water (a warped Voronoi pattern), strongest near the surface.
-- **Sharks:** each one is drawn by a shading function rather than fixed art, so it bends as it swims and turns in 3D. Depth sets each shark's size, opacity and parallax. Sharks are **curious**: they drift towards a cursor that holds still and dart away from one that moves fast. Clicking a shark startles it and releases a burst of bubbles.
-- **Fish and bubbles:** a small school of `><>` fish (boids) that scatters from cursors and sharks, and bubbles that grow as they rise and pop near the surface.
-- **Ripples:** every cursor, yours and other visitors', ripples the water. The waterline at the bottom of the hero rocks with it, and foam fizzes where the sea meets the page.
-
-**Creatures.** The shaded creatures (the dolphin, the pufferfish and the anglerfish) are generated, not hand-typed: [`scripts/gen-ascii-creatures.mjs`](scripts/gen-ascii-creatures.mjs) describes each one as a smooth shape and samples it into a density ramp, the same way the hero draws its sharks (dense back, pale belly, soft edges).
-
-- **About:** a bento of tinted tiles, each with its own creature and colour, and chips tinted from their tile. The Technical skills tile has a **dolphin** that leaps out of a drifting waterline, arcs over and dives back (one drawing, moved and tilted by CSS and clipped at the water). The Manchester tile shows the **live UK time** with a guess at what I'm doing, and a twinkling ASCII sun or moon by the hour.
-- **Projects:** a **pufferfish** on its own small live sea (caustics, bubbles, fish, and everyone's cursor ripples). It puffs up on hover, or on tap or keypress, with its shading thinning as it inflates, and releases a burst of bubbles. A faint **whale** crosses behind the section once per visit.
-- **Guestbook:** an **anglerfish** with a glowing lure in the midnight zone.
-- **Contact:** the **seabed**: sand ripples, swaying kelp and a crab that scuttles now and then.
-
-**Night dive (dark mode).** A moonlit hero with a moon instead of sun rays, navy fading to black in the zones, and creatures that glow (the sharks turn bioluminescent cyan). The theme follows the OS until a visitor picks one, then remembers it. An inline script sets it before the first paint, so it never flashes. The switch is an **ASCII dissolve** (~550 ms): glyphs flood the screen, the theme swaps under full cover, and they drain away. The guestbook canvas stays light in both themes, so everyone sees the same drawing.
-
-**Colour and contrast.** Colour comes from the environment (the deepening zones) and from the creatures; text stays neutral. Every pair the design relies on, text and art against every zone and tile in both themes, is checked by [`scripts/check-contrast.mjs`](scripts/check-contrast.mjs).
-
-**Small touches:** glass pills that grow slightly on hover, nav links that roll, `><>` fish drifting above section labels, and a bubble logomark beside the name (also the favicon).
-
-**Performance:**
-
-- The sea canvases run at no more than 30 fps, pause off screen or in a hidden tab, and show one still frame under `prefers-reduced-motion`. Phones get one shark and coarser cells.
-- **Adaptive quality:** each sea canvas measures its own frame time. If it stays over budget, it first drops its glow pass, then uses coarser cells (never stepping back up, so it doesn't flicker). On a 4× CPU-throttled profile this halved the hero's frame time (about 40 ms → 18 ms) and cut long tasks while scrolling from 85 to 2. Unthrottled, it holds 60 fps everywhere at full quality.
-- The dissolve is prepared on idle (canvas, colours and glyph atlases), redraws only the cells that change, and swaps the theme under full cover with transitions paused, so no frames drop.
-- The dolphin, waterline, whale, anglerfish and seabed are CSS animations of transforms and opacity, paused off screen.
-- The CSS gradients paint first, so the canvas never delays the first paint.
-
-**Accessibility:** a skip link, visible focus rings, keyboard access everywhere (including the pufferfish), reduced-motion fallbacks for every animation, and a mask that keeps glyphs out from behind text. All ASCII art and the depth gauge are decorative and hidden from screen readers.
-
-## Challenges & what I learned
-
-- **Relative coordinates.** Pixel positions are meaningless across screen sizes, so cursors travel as "x/y inside this card". Each receiver resolves the card on its own layout every frame. Measured end to end, a cursor lands within a pixel of where the other tab pointed.
-- **Trusting the server, not the client.** The public API key means anyone can publish to the room, so every event goes through a validator, and anything that must be authoritative (guestbook pixels) is published only by a Lambda using IAM, on a namespace browsers can't publish to.
-- **Testing a validator without deploying it.** I tested the APPSYNC_JS handler against AppSync's real runtime with the `EvaluateCode` API before it ever ran. The runtime has no regex literals, no `try/catch` and no `++`.
-- **Performance budget.** Adding the multiplayer layer first dropped Lighthouse performance from about 90 to the 70s and 80s: the Amplify client was downloading during page load and delaying the animated hero. Connecting only after the page has loaded and the browser is idle, and lazy-loading the dock and cursor layers, brought it back without anyone noticing the extra half-second.
-- **Reconnects.** WebSockets drop. The client retries with exponential backoff (1 s to 30 s, full jitter), hides all multiplayer UI while offline so the page is just a portfolio, and on reconnect re-announces itself and refetches the guestbook in case it missed a pixel.
-- **New-account limits.** Load testing hit a Lambda concurrency limit of 10 (the default for new AWS accounts) and API Gateway answered 429. Reads now retry with jittered backoff, and painting undoes its optimistic pixel if the server refuses it.
-- **Moderating anonymous input.** Rate limits at API Gateway, length and range caps in the validator and Lambdas, an ink budget on the guestbook, and a client flood guard.
-- **Contrast on tinted water.** Feedback said the contrast wasn't enough. Checking text only against white hid the problem, because most of the page now sits on tinted zones. A script that checks every pair against every zone, in both themes, caught failures that looked fine by eye (for example, small white text on the lighter top of the Contact panel was 3.95:1).
-- **A smooth theme switch.** The first dissolve stuttered: it redrew about 20,000 cells every frame, and the whole page restyled in one frame while the screen was only just covered. Preparing everything on idle, redrawing only changed cells, and holding full cover for two frames around the swap removed every dropped frame.
-- **Slow laptops.** Profiling with the CPU throttled showed the hero canvas missing frames. Rather than lowering quality for everyone, each canvas now steps its own quality down only when it measures that it can't keep up.
+- **Trusting the server, not the client.** With a public API key anyone can publish, so every event is validated, and authoritative data (pixels) is published only by a Lambda using IAM.
+- **Testing a validator before deploying it.** I ran the APPSYNC_JS handler against AppSync's real runtime with `EvaluateCode` (no regex literals, no `try/catch`, no `++`).
+- **Performance budget.** Loading multiplayer during page load dropped Lighthouse from ~90 to the 70s. Connecting only once the browser is idle brought it back.
+- **Reconnects and limits.** The client retries with jittered backoff and resyncs after reconnecting. Load testing hit a new account's Lambda concurrency limit, so reads now retry and failed paints are undone.
+- **A burst isn't a flood.** A tab that stalls for a moment receives a backlog of cursor events at once. A token bucket instead of a per-second count stopped honest visitors being muted.
+- **Contrast on tinted water.** Checking text only against white hid failures; a script that checks every pair against every zone, in both themes, caught them.
