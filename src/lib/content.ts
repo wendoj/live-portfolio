@@ -90,7 +90,7 @@ export const about = {
     { kind: "Reading", title: "A Tour of C++" },
     { kind: "Watching", title: "Steel Ball Run: JoJo's Bizarre Adventure 2nd Stage" },
   ],
-  studying: { what: "CS & Maths", where: "University of Manchester", years: "2026–2030" },
+  studying: { what: "CS & Maths", where: "University of Manchester", years: "2026–2029" },
   buildingSince: "2021",
 } as const;
 
@@ -115,8 +115,8 @@ export const prodpod = {
   tags: ["Real-time", "Web app"],
   summary: "A real-time study platform where students work together over live video, chat and screen sharing. I built it solo, end to end.",
   stats: [
-    { value: "12,000+", label: "users" },
-    { value: "206K", label: "impressions" },
+    { value: "14,000+", label: "users" },
+    { value: "223K", label: "impressions" },
   ],
   link: { href: links.prodpod, label: "Visit Prodpod" },
   video: "/projects/prodpod.mp4",
